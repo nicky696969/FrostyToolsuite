@@ -1223,10 +1223,31 @@
                                             <TextBlock Text="&#xE923;" FontFamily="Segoe MDL2 Assets" FontSize="10px" RenderOptions.ClearTypeHint="Auto" TextOptions.TextRenderingMode="Aliased"  TextOptions.TextFormattingMode="Display"></TextBlock>
                                         </Button.Content>
                                     </Button>
-                                    <Button x:Name="closeButton" Background="{StaticResource TitlebarBackground}" Command="{StaticResource CloseCommand}" CommandParameter="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type Window}}}" Width="46" Height="32" ToolTip="Close">
+                                    <Button x:Name="closeButton" Command="{StaticResource CloseCommand}" CommandParameter="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type Window}}}" Width="46" Height="32" ToolTip="Close">
                                         <Button.Content>
                                             <TextBlock Text="&#xE106;" FontFamily="Segoe MDL2 Assets" FontSize="10px" RenderOptions.ClearTypeHint="Auto" TextOptions.TextRenderingMode="Aliased"  TextOptions.TextFormattingMode="Display"></TextBlock>
                                         </Button.Content>
+                                        <Button.Style>
+                                            <Style TargetType="{x:Type Button}">
+                                                <Setter Property="Background" Value="{StaticResource TitlebarBackground}"/>
+                                                <Setter Property="Foreground" Value="{StaticResource FontColor}"/>
+                                                <Style.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter Property="Background" Value="#FFF01428"/>
+                                                    </Trigger>
+                                                    <Trigger Property="IsPressed" Value="True">
+                                                        <Setter Property="Background" Value="#FF940A14"/>
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                        <Button.Template>
+                                            <ControlTemplate TargetType="{x:Type Button}">
+                                                <Border Background="{TemplateBinding Background}">
+                                                    <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                                </Border>
+                                            </ControlTemplate>
+                                        </Button.Template>
                                     </Button>
                                 </StackPanel>
                             </Grid>
