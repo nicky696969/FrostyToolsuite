@@ -62,7 +62,7 @@ namespace FrostyEditor
 #elif FROSTY_BETA
             Version += " [BETA]";
 #else
-            Version += " (Alpha 5)";
+            Version += " (Github Build)";
 #endif
 #if DEBUG
             System.Diagnostics.PresentationTraceSources.DataBindingSource.Switch.Level = System.Diagnostics.SourceLevels.Critical;

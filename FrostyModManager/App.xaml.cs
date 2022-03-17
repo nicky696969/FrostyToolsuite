@@ -71,7 +71,7 @@ namespace FrostyModManager
             Version += " [BETA]";
 #endif
 
-            Version += " (Alpha 5)";
+            Version += " (Github Build)";
         }
 
         private void App_DispatcherUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
