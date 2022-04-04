@@ -839,7 +839,7 @@ namespace FrostyModManager
                                 if (compressedFi.Extension == ".fbpack") {
                                     //create temp file
                                     DirectoryInfo tempdir = new DirectoryInfo($"temp/");
-                                    FileInfo tempfile = new FileInfo(tempdir + Path.GetFileName(Path.ChangeExtension(filename, ".fbpack")));
+                                    FileInfo tempfile = new FileInfo(tempdir + compressedFi.Filename);
 
                                     tempdir.Create();
                                     decompressor.DecompressToFile(tempfile.FullName);
