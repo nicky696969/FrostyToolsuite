@@ -375,21 +375,22 @@ namespace FrostyModManager
             foreach (string packName in Config.EnumerateKeys(ConfigScope.Pack))
             //foreach (string profileName in Config.EnumerateKeys("Profiles"))
             {
-                string values = Config.Get(packName, "", ConfigScope.Pack);
-                //string values = Config.Get<string>("Profiles", profileName, "");
-                string[] valuesArray = values.Split(new char[] { '|' }, StringSplitOptions.RemoveEmptyEntries);
+                string[] values = Config.Get<string[]>(packName, new string[] {""}, ConfigScope.Pack);
+                
+                if (values[1] == System.Reflection.Assembly.GetEntryAssembly().Location.ToString() || packName == "Default") {
+                    string[] valuesArray = values[0].Split(new char[] { '|' }, StringSplitOptions.RemoveEmptyEntries);
 
-                FrostyPack pack = new FrostyPack(packName);
-                packs.Add(pack);
+                    FrostyPack pack = new FrostyPack(packName);
+                    packs.Add(pack);
 
-                for (int i = 0; i < valuesArray.Length; i++)
-                {
-                    string[] modEnabledPair = valuesArray[i].Split(new char[] { ':' }, StringSplitOptions.RemoveEmptyEntries);
-                    bool isEnabled = bool.Parse(modEnabledPair[1]);
+                    for (int i = 0; i < valuesArray.Length; i++) {
+                        string[] modEnabledPair = valuesArray[i].Split(new char[] { ':' }, StringSplitOptions.RemoveEmptyEntries);
+                        bool isEnabled = bool.Parse(modEnabledPair[1]);
 
-                    FrostyMod mod = availableMods.Find((FrostyMod a) => a.Filename == modEnabledPair[0]);
-                    if (mod != null)
-                        pack.AddMod(mod, isEnabled);
+                        FrostyMod mod = availableMods.Find((FrostyMod a) => a.Filename == modEnabledPair[0]);
+                        if (mod != null)
+                            pack.AddMod(mod, isEnabled);
+                    }
                 }
             }
 

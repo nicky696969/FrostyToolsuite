@@ -33,7 +33,7 @@ namespace Frosty.Core
             public string BookmarkDb { get; set; } = "[Asset Bookmarks]|[Legacy Bookmarks]";
 
             public Dictionary<string, object> Options { get; } = new Dictionary<string, object>();
-            public Dictionary<string, string> Packs { get; set; } = new Dictionary<string, string>();
+            public Dictionary<string, dynamic> Packs { get; set; } = new Dictionary<string, dynamic>();
 
             public GameOptions(string gamePath)
             {
@@ -79,8 +79,14 @@ namespace Frosty.Core
             {
                 get
                 {
-                    if (scope == ConfigScope.Pack)
-                        return Packs.ContainsKey(option) ? Packs[option] : null;
+                    if (scope == ConfigScope.Pack) {
+                        if (Packs.ContainsKey(option)) {
+                            if (Packs[option].GetType() == typeof(string))
+                                return new string[] { Packs[option], System.Reflection.Assembly.GetEntryAssembly().Location.ToString() };
+                            else return Packs[option].ToObject<string[]>();
+                        }
+                        else return null;
+                    }
                     else
                     {
                         if (option == "GamePath")
@@ -97,9 +103,9 @@ namespace Frosty.Core
                     if (scope == ConfigScope.Pack)
                     {
                         if (!Packs.ContainsKey(option))
-                            Packs.Add(option, (string)value);
+                            Packs.Add(option, new string[] { (string)value, System.Reflection.Assembly.GetEntryAssembly().Location.ToString() });
                         else
-                            Packs[option] = (string)value;
+                            Packs[option] = new string[] { (string)value, System.Reflection.Assembly.GetEntryAssembly().Location.ToString() };
                     }
                     else
                     {
@@ -410,7 +416,7 @@ namespace Frosty.Core
 
                     if (Current.GlobalOptions.ContainsKey("Profiles"))
                     {
-                        Current.Games[currProfile].Packs = (Dictionary<string, string>)Current.GlobalOptions["Profiles"];
+                        Current.Games[currProfile].Packs = (Dictionary<string, dynamic>)Current.GlobalOptions["Profiles"];
                         Remove("Profiles");
                     }
                 }
