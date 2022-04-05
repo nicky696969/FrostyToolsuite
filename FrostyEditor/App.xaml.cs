@@ -65,6 +65,8 @@ namespace FrostyEditor
             Exit += Application_Exit;
 
             string test = FrostyEditor.Properties.Resources.BuildDate;
+            test = test.Substring(test.IndexOf(' ') + 1);
+            test = test.Substring(0, test.IndexOf(' '));
 
 #if FROSTY_DEVELOPER
             Version += " (Developer)";
@@ -74,7 +76,7 @@ namespace FrostyEditor
 #elif FROSTY_BETA
             Version += " [BETA]";
 #else
-            Version += " (Github Build)";
+            Version += " (Github Build " + test + ")";
 #endif
 #if DEBUG
             System.Diagnostics.PresentationTraceSources.DataBindingSource.Switch.Level = System.Diagnostics.SourceLevels.Critical;
