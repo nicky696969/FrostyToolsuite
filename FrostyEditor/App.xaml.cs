@@ -64,7 +64,9 @@ namespace FrostyEditor
             DispatcherUnhandledException += App_DispatcherUnhandledException;
             Exit += Application_Exit;
 
-            string test = FrostyEditor.Properties.Resources.BuildDate;
+            string BuildDate = FrostyEditor.Properties.Resources.BuildDate;
+            BuildDate = BuildDate.Substring(BuildDate.IndexOf(' ') + 1);
+            BuildDate = BuildDate.Substring(0, BuildDate.IndexOf(' '));
 
 #if FROSTY_DEVELOPER
             Version += " (Developer)";
@@ -72,6 +74,8 @@ namespace FrostyEditor
             Version += $" (ALPHA {Frosty.Core.App.Version})";
 #elif FROSTY_BETA
             Version += $" (BETA {Frosty.Core.App.Version})";
+#elif FROSTY_GITHUB_RELEASE
+            Version += $" (Github Build {BuildDate})";
 #endif
         }
 

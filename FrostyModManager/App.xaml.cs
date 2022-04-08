@@ -63,12 +63,18 @@ namespace FrostyModManager
             // for displaying exception box on all unhandled exceptions
             DispatcherUnhandledException += App_DispatcherUnhandledException;
 
+            string BuildDate = FrostyModManager.Properties.Resources.BuildDate;
+            BuildDate = BuildDate.Substring(BuildDate.IndexOf(' ') + 1);
+            BuildDate = BuildDate.Substring(0, BuildDate.IndexOf(' '));
+
 #if FROSTY_DEVELOPER
             Version += " (Developer)";
 #elif FROSTY_ALPHA
             Version += $" (ALPHA {Frosty.Core.App.Version})";
 #elif FROSTY_BETA
             Version += $" (BETA {Frosty.Core.App.Version})";
+#elif FROSTY_GITHUB_RELEASE
+            Version += $" (Github Build {BuildDate})";
 #endif
         }
 
