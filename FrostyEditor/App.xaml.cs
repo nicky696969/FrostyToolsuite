@@ -11,7 +11,6 @@ using FrostySdk.IO;
 using Frosty.Core;
 using Frosty.Core.Controls;
 using FrostyCore;
-using System.Text;
 
 namespace FrostyEditor
 {
@@ -32,23 +31,12 @@ namespace FrostyEditor
         public static string Version = "";
         public static long StartTime;
 
-        public static bool OpenProject {
-            get => openProject;
-            set => openProject = value;
-        }
-
-        public static string LaunchArgs { get; private set; }
-
-        private static bool openProject;
-
         private FrostyConfiguration defaultConfig;
 
         public App()
         {
             Assembly entryAssembly = Assembly.GetEntryAssembly();
             Version = entryAssembly.GetName().Version.ToString();
-
-            Environment.CurrentDirectory = System.AppDomain.CurrentDomain.BaseDirectory;
 
             Logger = new FrostyLogger();
             Logger.Log("Frosty Editor v{0}", Version);
@@ -65,21 +53,13 @@ namespace FrostyEditor
             Exit += Application_Exit;
 
             string test = FrostyEditor.Properties.Resources.BuildDate;
-            test = test.Substring(test.IndexOf(' ') + 1);
-            test = test.Substring(0, test.IndexOf(' '));
 
 #if FROSTY_DEVELOPER
             Version += " (Developer)";
 #elif FROSTY_ALPHA
-            //Version += " (" + FrostyEditor.Properties.Resources.BuildDate + ")";
-            Version += " (07172021)";
+            Version += $" (ALPHA {Frosty.Core.App.Version})";
 #elif FROSTY_BETA
-            Version += " [BETA]";
-#else
-            Version += " (Github Build " + test + ")";
-#endif
-#if DEBUG
-            System.Diagnostics.PresentationTraceSources.DataBindingSource.Switch.Level = System.Diagnostics.SourceLevels.Critical;
+            Version += $" (BETA {Frosty.Core.App.Version})";
 #endif
         }
 
@@ -202,29 +182,6 @@ namespace FrostyEditor
                 {
                     Config.Add("UseDefaultProfile", false);
                     Config.Save();
-                }
-            }
-
-            //check args to see if it is loading a project
-            if (e.Args.Length > 0) {
-                string arg = e.Args[0];
-                if (arg.Contains(".fbproject")) {
-                    openProject = true;
-                    LaunchArgs = arg;
-
-                    //get game profile from project file
-                    using (NativeReader reader = new NativeReader(new FileStream(arg, FileMode.Open, FileAccess.Read))) {
-                        if (reader.ReadULong() == 0x00005954534F5246) {
-                            reader.ReadUInt();
-                            string gameProfile = reader.ReadNullTerminatedString();
-                            try { 
-                                defaultConfig = new FrostyConfiguration(gameProfile); 
-                            }
-                            catch { 
-                                FrostyMessageBox.Show("There was an error when trying to load project using the profile: " + gameProfile, "Frosty Editor");
-                            }
-                        }
-                    }
                 }
             }
 
