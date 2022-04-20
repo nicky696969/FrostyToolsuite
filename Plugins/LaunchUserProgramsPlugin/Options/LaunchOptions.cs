@@ -33,6 +33,7 @@ namespace LaunchUserProgramsPlugin.Options
         [Description("")]
         [EbxFieldMeta(FrostySdk.IO.EbxFieldType.Struct)]
         [DisplayName("Programs")]
+        [IsHidden]
         [IsReadOnly]
         public List<Programs> UserPrograms { get; set; } = new List<Programs>();
 
