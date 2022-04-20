@@ -16,6 +16,9 @@ using System.Windows.Data;
 using FrostySdk;
 using Microsoft.Win32;
 using System.Runtime.InteropServices;
+using System.Windows.Input;
+using System.IO;
+using System.Diagnostics;
 
 namespace Frosty.Core.Windows
 {
@@ -367,6 +370,7 @@ namespace Frosty.Core.Windows
         public OptionsWindow()
         {
             InitializeComponent();
+            this.KeyDown += new KeyEventHandler(OptionsWindow_KeyDown);
         }
 
         private void OptionsWindow_Loaded(object sender, RoutedEventArgs e)
@@ -423,6 +427,15 @@ namespace Frosty.Core.Windows
                     return false;
             }
             return true;
+        }
+
+        void OptionsWindow_KeyDown(object sender, KeyEventArgs e) {
+            // Open Frosty Config Folder
+            if (e.Key == Key.F12) {
+                if (!Directory.Exists(App.GlobalSettingsPath))
+                    Directory.CreateDirectory(App.GlobalSettingsPath);
+                Process.Start(App.GlobalSettingsPath);
+            }
         }
     }
 }
