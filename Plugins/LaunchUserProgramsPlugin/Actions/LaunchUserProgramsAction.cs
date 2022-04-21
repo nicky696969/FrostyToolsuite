@@ -17,19 +17,32 @@ namespace LaunchUserProgramsPlugin.Actions
         public override Action<ILogger, PluginManagerType, CancellationToken> PreLaunchAction => new Action<ILogger, PluginManagerType, CancellationToken>((ILogger logger, PluginManagerType type, CancellationToken cancelToken) =>
         {
             string frostyDir = Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location);
-            DirectoryInfo di = new DirectoryInfo($"{frostyDir}\\Plugins\\UserPrograms");
+            DirectoryInfo di = new DirectoryInfo($"{frostyDir}\\Plugins\\UserPrograms\\");
             if (!di.Exists) di.Create();
 
             if (Config.Get("UserProgramLaunchingEnabled", false, ConfigScope.Game) && di.GetFiles("*.exe") != null) {
                 foreach (var file in di.GetFiles("*.exe")) {
-                    FrostyModExecutor.ExecuteProcess(file.FullName, "");
-
-                    logger.Log($"Waiting for {file.Name}");
-
-                    try {
-                        WaitForProcess(Path.GetFileNameWithoutExtension(file.Name), cancelToken);
+                    if (file.Name.Contains("{{")) {
+                        string fileName = file.Name.Substring(file.Name.IndexOf("}}") + 2);
+                        string pack = file.Name.Substring(2, file.Name.IndexOf("}}") - 2);
+                        if (App.SelectedPack == pack) {
+                            FrostyModExecutor.ExecuteProcess(file.FullName, "");
+                            logger.Log($"Waiting for {fileName}");
+                            try {
+                                WaitForProcess(Path.GetFileNameWithoutExtension(file.Name), cancelToken);
+                            }
+                            catch (OperationCanceledException) {
+                            }
+                        } 
                     }
-                    catch (OperationCanceledException) {
+                    else {
+                        FrostyModExecutor.ExecuteProcess(file.FullName, "");
+                        logger.Log($"Waiting for {file.Name}");
+                        try {
+                            WaitForProcess(Path.GetFileNameWithoutExtension(file.Name), cancelToken);
+                        }
+                        catch (OperationCanceledException) {
+                        }
                     }
                 }
             }
@@ -38,7 +51,7 @@ namespace LaunchUserProgramsPlugin.Actions
         public override Action<ILogger, PluginManagerType, CancellationToken> PostLaunchAction => new Action<ILogger, PluginManagerType, CancellationToken>((ILogger logger, PluginManagerType type, CancellationToken cancelToken) =>
         {
             string frostyDir = Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location);
-            DirectoryInfo di = new DirectoryInfo($"{frostyDir}\\Plugins\\UserPrograms");
+            DirectoryInfo di = new DirectoryInfo($"{frostyDir}\\Plugins\\UserPrograms\\");
             if (!di.Exists) di.Create();
 
             if (Config.Get("UserProgramLaunchingEnabled", false, ConfigScope.Game) && di.GetFiles("*.exe") != null) {
@@ -109,7 +122,7 @@ namespace LaunchUserProgramsPlugin.Actions
                 if (gameProcess != null)
                 {
                     while (gameProcess.MainWindowHandle == IntPtr.Zero)
-                        System.Threading.Thread.Sleep(TimeSpan.FromSeconds(1));
+                        Thread.Sleep(200);
 
                     return gameProcess;
                 }

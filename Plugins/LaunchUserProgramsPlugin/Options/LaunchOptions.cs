@@ -28,7 +28,7 @@ namespace LaunchUserProgramsPlugin.Options
 
         [EbxFieldMeta(EbxFieldType.Struct)]
         [Editor(typeof(FrostyPlatformDataEditor))]
-        public CustomComboData<string, string> Profile { get; set; }
+        public CustomComboData<string, string> Pack { get; set; }
 
         [IsReadOnly]
         [IsHidden]
@@ -58,16 +58,15 @@ namespace LaunchUserProgramsPlugin.Options
             DirectoryInfo di = new DirectoryInfo($"{frostyDir}\\Plugins\\UserPrograms\\");
             if (!di.Exists) di.Create();
             foreach (var file in di.GetFiles("*.exe")) {
-                List<string> profiles = Config.EnumerateKeys(ConfigScope.Pack).ToList();
-                profiles.Insert(0, "All Profiles");
-                string fileName = file.Name;
+                List<string> packs = Config.EnumerateKeys(ConfigScope.Pack).ToList();
+                packs.Insert(0, "All Profiles");
                 if (file.Name.Contains("{{")) {
-                    fileName = file.Name.Substring(file.Name.IndexOf("}}") + 2);
-                    string profile = file.Name.Substring(2, file.Name.IndexOf("}}") - 2);
-                    UserPrograms.Add(new Program() { Name = fileName, Profile = new CustomComboData<string, string>(profiles, profiles) { SelectedIndex = profiles.IndexOf(profile) }, NameFull = file.Name });
+                    string fileName = file.Name.Substring(file.Name.IndexOf("}}") + 2);
+                    string pack = file.Name.Substring(2, file.Name.IndexOf("}}") - 2);
+                    UserPrograms.Add(new Program() { Name = fileName, Pack = new CustomComboData<string, string>(packs, packs) { SelectedIndex = packs.IndexOf(pack) }, NameFull = file.Name });
                 }
                 else {
-                    UserPrograms.Add(new Program() { Name = file.Name, Profile = new CustomComboData<string, string>(profiles, profiles), NameFull = file.Name });
+                    UserPrograms.Add(new Program() { Name = file.Name, Pack = new CustomComboData<string, string>(packs, packs), NameFull = file.Name });
                 }
             }
 
@@ -84,8 +83,8 @@ namespace LaunchUserProgramsPlugin.Options
             DirectoryInfo di = new DirectoryInfo($"{frostyDir}\\Plugins\\UserPrograms\\");
 
             foreach (var program in UserPrograms) {
-                if (program.Profile.SelectedName != "All Profiles") {
-                    File.Move(di.FullName + program.NameFull.ToString(), di.FullName + "{{" + program.Profile.SelectedName + "}}" + program.Name.ToString());
+                if (program.Pack.SelectedName != "All Profiles") {
+                    File.Move(di.FullName + program.NameFull.ToString(), di.FullName + "{{" + program.Pack.SelectedName + "}}" + program.Name.ToString());
                 }
                 else if (program.NameFull.ToString().Contains("{{")) {
                     string newFileName = program.NameFull.ToString().Substring(program.NameFull.ToString().IndexOf("}}") + 2);
