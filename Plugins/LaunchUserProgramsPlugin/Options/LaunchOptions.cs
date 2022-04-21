@@ -71,7 +71,7 @@ namespace LaunchUserProgramsPlugin.Options
                 }
             }
 
-            UserProgramLaunchingEnabled = Config.Get("UserProgramLaunchingEnabled", false, ConfigScope.Game);
+            UserProgramLaunchingEnabled = Config.Get("UserProgramLaunchingEnabled", true, ConfigScope.Game);
 
             
         }

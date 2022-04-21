@@ -20,7 +20,7 @@ namespace LaunchUserProgramsPlugin.Actions
             DirectoryInfo di = new DirectoryInfo($"{frostyDir}\\Plugins\\UserPrograms\\");
             if (!di.Exists) di.Create();
 
-            if (Config.Get("UserProgramLaunchingEnabled", false, ConfigScope.Game) && di.GetFiles("*.exe") != null) {
+            if (Config.Get("UserProgramLaunchingEnabled", true, ConfigScope.Game) && di.GetFiles("*.exe") != null) {
                 foreach (var file in di.GetFiles("*.exe")) {
                     if (file.Name.Contains("{{")) {
                         string fileName = file.Name.Substring(file.Name.IndexOf("}}") + 2);
@@ -54,7 +54,7 @@ namespace LaunchUserProgramsPlugin.Actions
             DirectoryInfo di = new DirectoryInfo($"{frostyDir}\\Plugins\\UserPrograms\\");
             if (!di.Exists) di.Create();
 
-            if (Config.Get("UserProgramLaunchingEnabled", false, ConfigScope.Game) && di.GetFiles("*.exe") != null) {
+            if (Config.Get("UserProgramLaunchingEnabled", true, ConfigScope.Game) && di.GetFiles("*.exe") != null) {
                 logger.Log("Waiting for game");
 
                 // find game process to check when it closes
