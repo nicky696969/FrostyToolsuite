@@ -2,6 +2,8 @@
 using Frosty.Core.Controls.Editors;
 using Frosty.Core.Misc;
 using FrostySdk.Attributes;
+using FrostySdk.Ebx;
+using FrostySdk.IO;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -12,12 +14,26 @@ using System.Threading.Tasks;
 namespace LaunchUserProgramsPlugin.Options
 {
 
+    public class FrostyPlatformDataEditor : FrostyCustomComboDataEditor<string, string> {
+    }
+
+
+
     [IsExpandedByDefault]
-    [EbxClassMeta(FrostySdk.IO.EbxFieldType.Struct)]
-    public class Programs {
-        [EbxFieldMeta(FrostySdk.IO.EbxFieldType.CString)]
+    [EbxClassMeta(EbxFieldType.Struct)]
+    public class Program {
         [IsReadOnly]
-        public string Name { get; set; }
+        [EbxFieldMeta(EbxFieldType.CString)]
+        public CString Name { get; set; }
+
+        [EbxFieldMeta(EbxFieldType.Struct)]
+        [Editor(typeof(FrostyPlatformDataEditor))]
+        public CustomComboData<string, string> Profile { get; set; }
+
+        [IsReadOnly]
+        [IsHidden]
+        [EbxFieldMeta(EbxFieldType.CString)]
+        public CString NameFull { get; set; }
     }
 
     [DisplayName("Launch User Programs")]
@@ -26,32 +42,56 @@ namespace LaunchUserProgramsPlugin.Options
         [Category("General")]
         [Description("")]
         [DisplayName("Enabled")]
-        [EbxFieldMeta(FrostySdk.IO.EbxFieldType.Boolean)]
+        [EbxFieldMeta(EbxFieldType.Boolean)]
         public bool UserProgramLaunchingEnabled { get; set; } = true;
 
         [Category("General")]
         [Description("")]
-        [EbxFieldMeta(FrostySdk.IO.EbxFieldType.Struct)]
         [DisplayName("Programs")]
-        [IsHidden]
         [IsReadOnly]
-        public List<Programs> UserPrograms { get; set; } = new List<Programs>();
+        [EbxFieldMeta(EbxFieldType.Struct)]
+        public List<Program> UserPrograms { get; set; } = new List<Program>();
 
         public override void Load()
         {
             string frostyDir = Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location);
-            DirectoryInfo di = new DirectoryInfo($"{frostyDir}\\Plugins\\UserPrograms");
+            DirectoryInfo di = new DirectoryInfo($"{frostyDir}\\Plugins\\UserPrograms\\");
             if (!di.Exists) di.Create();
             foreach (var file in di.GetFiles("*.exe")) {
-                UserPrograms.Add(new Programs() { Name = file.Name });
+                List<string> profiles = Config.EnumerateKeys(ConfigScope.Pack).ToList();
+                profiles.Insert(0, "All Profiles");
+                string fileName = file.Name;
+                if (file.Name.Contains("{{")) {
+                    fileName = file.Name.Substring(file.Name.IndexOf("}}") + 2);
+                    string profile = file.Name.Substring(2, file.Name.IndexOf("}}") - 2);
+                    UserPrograms.Add(new Program() { Name = fileName, Profile = new CustomComboData<string, string>(profiles, profiles) { SelectedIndex = profiles.IndexOf(profile) }, NameFull = file.Name });
+                }
+                else {
+                    UserPrograms.Add(new Program() { Name = file.Name, Profile = new CustomComboData<string, string>(profiles, profiles), NameFull = file.Name });
+                }
             }
 
             UserProgramLaunchingEnabled = Config.Get("UserProgramLaunchingEnabled", false, ConfigScope.Game);
+
+            
         }
 
         public override void Save()
         {
             Config.Add("UserProgramLaunchingEnabled", UserProgramLaunchingEnabled, ConfigScope.Game);
+
+            string frostyDir = Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location);
+            DirectoryInfo di = new DirectoryInfo($"{frostyDir}\\Plugins\\UserPrograms\\");
+
+            foreach (var program in UserPrograms) {
+                if (program.Profile.SelectedName != "All Profiles") {
+                    File.Move(di.FullName + program.NameFull.ToString(), di.FullName + "{{" + program.Profile.SelectedName + "}}" + program.Name.ToString());
+                }
+                else if (program.NameFull.ToString().Contains("{{")) {
+                    string newFileName = program.NameFull.ToString().Substring(program.NameFull.ToString().IndexOf("}}") + 2);
+                    File.Move(di.FullName + program.NameFull.ToString(), di.FullName + newFileName);
+                }
+            }
         }
     }
 }
