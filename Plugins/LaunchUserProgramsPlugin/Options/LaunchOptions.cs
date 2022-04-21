@@ -49,6 +49,7 @@ namespace LaunchUserProgramsPlugin.Options
         [Description("")]
         [DisplayName("Programs")]
         [IsReadOnly]
+        [IsExpandedByDefault]
         [EbxFieldMeta(EbxFieldType.Struct)]
         public List<Program> UserPrograms { get; set; } = new List<Program>();
 
