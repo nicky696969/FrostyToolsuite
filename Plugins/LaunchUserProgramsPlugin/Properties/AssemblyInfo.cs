@@ -26,7 +26,7 @@ using System.Windows;
 
 [assembly: PluginDisplayName("Launch User Programs")]
 [assembly: PluginAuthor("Dyvinia")]
-[assembly: PluginVersion("1.1.0.0")]
+[assembly: PluginVersion("1.1.1.0")]
 
 [assembly: RegisterOptionsExtension(typeof(LaunchOptions), Frosty.Core.PluginManagerType.Both)]
 [assembly: RegisterExecutionAction(typeof(LaunchUserProgramsAction))]
