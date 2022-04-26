@@ -50,6 +50,11 @@
                                                         <Image Grid.Column="0" Width="14" Source="/FrostyEditor;component/Images/Grid.png"/>
                                                     </ToggleButton.Content>
                                                 </ToggleButton>
+                                                <ToggleButton x:Name="PART_Outline" Width="22" Margin="0" IsChecked="{Binding Path=OutlineVisible, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" ToolTip="Show shape bounds">
+                                                    <ToggleButton.Content>
+                                                        <Image Grid.Column="0" Width="14" Source="/FrostyEditor;component/Images/Skybox.png"/>
+                                                    </ToggleButton.Content>
+                                                </ToggleButton>
                                             </StackPanel>
                                         </Border>
                                     </DockPanel>

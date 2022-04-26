@@ -8,15 +8,18 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using System.Windows.Shapes;
 
 namespace DiceUIVectorShapesEditorPlugin
 {
     [TemplatePart(Name = PART_Canvas, Type = typeof(Viewbox))]
+    [TemplatePart(Name = PART_Outline, Type = typeof(ToggleButton))]
     public class FrostyDiceUIVectorShapeEditor : FrostyAssetEditor
     {
         private const string PART_Canvas = "PART_Canvas";
+        private const string PART_Outline = "PART_Outline";
 
         #region -- GridVisible --
         public static readonly DependencyProperty GridVisibleProperty = DependencyProperty.Register("GridVisible", typeof(bool), typeof(FrostyDiceUIVectorShapeEditor), new FrameworkPropertyMetadata(false));
@@ -27,7 +30,16 @@ namespace DiceUIVectorShapesEditorPlugin
         }
         #endregion
 
+        #region -- OutlineVisible --
+        public static readonly DependencyProperty OutlineVisibleProperty = DependencyProperty.Register("OutlineVisible", typeof(bool), typeof(FrostyDiceUIVectorShapeEditor), new FrameworkPropertyMetadata(true));
+        public bool OutlineVisible {
+            get => (bool)GetValue(OutlineVisibleProperty);
+            set => SetValue(OutlineVisibleProperty, value);
+        }
+        #endregion
+
         private Viewbox canvas;
+        private ToggleButton outline;
 
         static FrostyDiceUIVectorShapeEditor()
         {
@@ -46,6 +58,9 @@ namespace DiceUIVectorShapesEditorPlugin
             canvas = GetTemplateChild(PART_Canvas) as Viewbox;
             Loaded += FrostySvgImageEditor_Update;
             OnAssetModified += FrostySvgImageEditor_Update;
+            outline = GetTemplateChild(PART_Outline) as ToggleButton;
+            outline.Checked += FrostySvgImageEditor_Update;
+            outline.Unchecked += FrostySvgImageEditor_Update;
         }
 
         private void FrostySvgImageEditor_Update(object sender, RoutedEventArgs e)
@@ -73,12 +88,12 @@ namespace DiceUIVectorShapesEditorPlugin
             Polygon layoutRect = new Polygon();
             layoutRect.Stroke = new SolidColorBrush(Color.FromRgb(50, 50, 50));
             layoutRect.StrokeThickness = (vectorShapes.LayoutRect.z - vectorShapes.LayoutRect.x) / 100;
+            if (!OutlineVisible) layoutRect.StrokeThickness = 0;
             layoutRect.Points.Add(new Point(vectorShapes.LayoutRect.x, vectorShapes.LayoutRect.y));
             layoutRect.Points.Add(new Point(vectorShapes.LayoutRect.z, vectorShapes.LayoutRect.y));
             layoutRect.Points.Add(new Point(vectorShapes.LayoutRect.z, vectorShapes.LayoutRect.w));
             layoutRect.Points.Add(new Point(vectorShapes.LayoutRect.x, vectorShapes.LayoutRect.w));
 
-            imageGrid.Children.Add(layoutRect);
             foreach (dynamic shape in vectorShapes.Shapes)
             {
                 PathFigure p = new PathFigure();
@@ -87,41 +102,31 @@ namespace DiceUIVectorShapesEditorPlugin
 
                 if(shape.Path.Corners.Count > 1) {
                     for (int i = 1; i < shape.Path.Corners.Count; i++) {
-
-                        Point pointMinus;
-                        if (i == 0)
-                            pointMinus = new Point(shape.Path.Corners[0].Position.x, shape.Path.Corners[0].Position.y);
-                        else
-                            pointMinus = new Point(shape.Path.Corners[i - 1].Position.x, shape.Path.Corners[i - 1].Position.y);
-
-
                         Point point = new Point(shape.Path.Corners[i].Position.x, shape.Path.Corners[i].Position.y);
-                        Point pointPlus;
-                        if (i + 1 == shape.Path.Corners.Count) 
-                            pointPlus = new Point(shape.Path.Corners[0].Position.x, shape.Path.Corners[0].Position.y);
-                        else 
-                            pointPlus = new Point(shape.Path.Corners[i + 1].Position.x, shape.Path.Corners[i + 1].Position.y);
                         
-                        Vector v1 = point - pointMinus;
-                        Vector v2 = pointPlus - point;
                         double radius = shape.Path.Corners[i].Radius;
 
-                        SweepDirection direction = (Vector.AngleBetween(v1, v2) > 0) ? SweepDirection.Clockwise : SweepDirection.Counterclockwise;
+                        SweepDirection direction;
+                        if (radius < 0) {
+                            direction = SweepDirection.Clockwise;
+                            radius *= -1;
+                        } else {
+                            direction = SweepDirection.Counterclockwise;
+                        }
 
                         ArcSegment arc = new ArcSegment(point, new Size(radius, radius), 0, false, direction, true);
                         p.Segments.Add(arc);
                     }
 
-                    //Add extra point to fix things if its a fill
-                    Point pointL = new Point(shape.Path.Corners[0].Position.x, shape.Path.Corners[0].Position.y);
-                    Point pointMinusL = new Point(shape.Path.Corners[shape.Path.Corners.Count - 1].Position.x, shape.Path.Corners[shape.Path.Corners.Count - 1].Position.y);
-                    Point pointPlusL = new Point(shape.Path.Corners[1].Position.x, shape.Path.Corners[1].Position.y);
-                    Vector v1L = pointL - pointMinusL;
-                    Vector v2L = pointPlusL - pointL;
-                    SweepDirection directionL = (Vector.AngleBetween(v1L, v2L) > 0) ? SweepDirection.Clockwise : SweepDirection.Counterclockwise;
-                    ArcSegment arcL = new ArcSegment(pointL, new Size(shape.Path.Corners[0].Radius, shape.Path.Corners[0].Radius), 0, false, directionL, true);
-                    if ((int)shape.DrawStyle == 2)
-                        p.Segments.Add(arcL);
+                    // Add extra point to fix things if its a fill or outline
+                    if ((int)shape.DrawStyle == 1 || (int)shape.DrawStyle == 2) {
+                        Point point = new Point(shape.Path.Corners[0].Position.x, shape.Path.Corners[0].Position.y);
+                        double radius = shape.Path.Corners[0].Radius;
+                        SweepDirection direction = radius < 0 ? SweepDirection.Clockwise : SweepDirection.Counterclockwise;
+                        ArcSegment arcLast = new ArcSegment(point, new Size(shape.Path.Corners[0].Radius, shape.Path.Corners[0].Radius), 0, false, direction, true);
+                        p.Segments.Add(arcLast);
+                        p.IsClosed = true;
+                    }
                 }
 
                 PathGeometry geometry = new PathGeometry();
@@ -135,7 +140,8 @@ namespace DiceUIVectorShapesEditorPlugin
                 if ((int)shape.DrawStyle == 2)
                     path.Fill = new SolidColorBrush(Color.FromScRgb(shape.Alpha, shape.Color.x, shape.Color.y, shape.Color.z));
 
-                path.StrokeThickness = shape.LineWidth;
+                path.StrokeThickness = shape.LineWidth == 0 ? 1 : shape.LineWidth;
+                path.StrokeLineJoin = (PenLineJoin)shape.Path.Corners[0].CornerType;
                 path.StrokeEndLineCap = (PenLineCap)shape.EndCapType;
                 path.StrokeStartLineCap = (PenLineCap)shape.StartCapType;
 
@@ -144,6 +150,8 @@ namespace DiceUIVectorShapesEditorPlugin
 
             imageGrid.HorizontalAlignment = HorizontalAlignment.Stretch;
             imageGrid.VerticalAlignment = VerticalAlignment.Stretch;
+
+            imageGrid.Children.Add(layoutRect);
 
             canvas.Child = imageGrid;
         }
