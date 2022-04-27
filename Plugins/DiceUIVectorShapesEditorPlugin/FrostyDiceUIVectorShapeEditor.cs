@@ -94,58 +94,68 @@ namespace DiceUIVectorShapesEditorPlugin
             layoutRect.Points.Add(new Point(vectorShapes.LayoutRect.z, vectorShapes.LayoutRect.w));
             layoutRect.Points.Add(new Point(vectorShapes.LayoutRect.x, vectorShapes.LayoutRect.w));
 
-            foreach (dynamic shape in vectorShapes.Shapes)
-            {
-                PathFigure p = new PathFigure();
+            foreach (dynamic shape in vectorShapes.Shapes) {
+                if (shape.Path.Corners.Count != 0) {
+                    PathFigure p = new PathFigure();
 
-                p.StartPoint = new Point(shape.Path.Corners[0].Position.x, shape.Path.Corners[0].Position.y);
+                    p.StartPoint = new Point(shape.Path.Corners[0].Position.x, shape.Path.Corners[0].Position.y);
 
-                if(shape.Path.Corners.Count > 1) {
-                    for (int i = 1; i < shape.Path.Corners.Count; i++) {
-                        Point point = new Point(shape.Path.Corners[i].Position.x, shape.Path.Corners[i].Position.y);
-                        
-                        double radius = shape.Path.Corners[i].Radius;
+                    if (shape.Path.Corners.Count > 1) {
+                        for (int i = 1; i < shape.Path.Corners.Count; i++) {
+                            Point point = new Point(shape.Path.Corners[i].Position.x, shape.Path.Corners[i].Position.y);
+                            double radius = shape.Path.Corners[i].Radius;
 
-                        SweepDirection direction;
-                        if (radius < 0) {
-                            direction = SweepDirection.Clockwise;
-                            radius *= -1;
-                        } else {
-                            direction = SweepDirection.Counterclockwise;
+                            SweepDirection direction;
+                            if (radius < 0) {
+                                direction = SweepDirection.Clockwise;
+                                radius *= -1;
+                            }
+                            else {
+                                direction = SweepDirection.Counterclockwise;
+                            }
+
+                            ArcSegment arc = new ArcSegment(point, new Size(radius, radius), 0, false, direction, true);
+                            p.Segments.Add(arc);
                         }
 
-                        ArcSegment arc = new ArcSegment(point, new Size(radius, radius), 0, false, direction, true);
-                        p.Segments.Add(arc);
+                        // Add extra point to fix things if its a fill or outline
+                        if ((int)shape.DrawStyle == 1 || (int)shape.DrawStyle == 2) {
+                            Point point = new Point(shape.Path.Corners[0].Position.x, shape.Path.Corners[0].Position.y);
+                            double radius = shape.Path.Corners[0].Radius;
+
+                            SweepDirection direction;
+                            if (radius < 0) {
+                                direction = SweepDirection.Clockwise;
+                                radius *= -1;
+                            }
+                            else {
+                                direction = SweepDirection.Counterclockwise;
+                            }
+
+                            ArcSegment arcLast = new ArcSegment(point, new Size(radius, radius), 0, false, direction, true);
+                            p.Segments.Add(arcLast);
+                            p.IsClosed = true;
+                        }
                     }
 
-                    // Add extra point to fix things if its a fill or outline
-                    if ((int)shape.DrawStyle == 1 || (int)shape.DrawStyle == 2) {
-                        Point point = new Point(shape.Path.Corners[0].Position.x, shape.Path.Corners[0].Position.y);
-                        double radius = shape.Path.Corners[0].Radius;
-                        SweepDirection direction = radius < 0 ? SweepDirection.Clockwise : SweepDirection.Counterclockwise;
-                        ArcSegment arcLast = new ArcSegment(point, new Size(shape.Path.Corners[0].Radius, shape.Path.Corners[0].Radius), 0, false, direction, true);
-                        p.Segments.Add(arcLast);
-                        p.IsClosed = true;
-                    }
+                    PathGeometry geometry = new PathGeometry();
+                    geometry.Figures.Add(p);
+
+                    Path path = new Path();
+                    path.Data = geometry;
+
+                    if ((int)shape.DrawStyle == 0 || (int)shape.DrawStyle == 1)
+                        path.Stroke = new SolidColorBrush(Color.FromScRgb(shape.Alpha, shape.Color.x, shape.Color.y, shape.Color.z));
+                    if ((int)shape.DrawStyle == 2)
+                        path.Fill = new SolidColorBrush(Color.FromScRgb(shape.Alpha, shape.Color.x, shape.Color.y, shape.Color.z));
+
+                    path.StrokeThickness = shape.LineWidth == 0 ? 1 : shape.LineWidth;
+                    path.StrokeLineJoin = (PenLineJoin)shape.Path.Corners[0].CornerType;
+                    path.StrokeEndLineCap = (PenLineCap)shape.EndCapType;
+                    path.StrokeStartLineCap = (PenLineCap)shape.StartCapType;
+
+                    imageGrid.Children.Add(path);
                 }
-
-                PathGeometry geometry = new PathGeometry();
-                geometry.Figures.Add(p);
-
-                Path path = new Path();
-                path.Data = geometry;
-
-                if ((int)shape.DrawStyle == 0 || (int)shape.DrawStyle == 1)
-                    path.Stroke = new SolidColorBrush(Color.FromScRgb(shape.Alpha, shape.Color.x, shape.Color.y, shape.Color.z));
-                if ((int)shape.DrawStyle == 2)
-                    path.Fill = new SolidColorBrush(Color.FromScRgb(shape.Alpha, shape.Color.x, shape.Color.y, shape.Color.z));
-
-                path.StrokeThickness = shape.LineWidth == 0 ? 1 : shape.LineWidth;
-                path.StrokeLineJoin = (PenLineJoin)shape.Path.Corners[0].CornerType;
-                path.StrokeEndLineCap = (PenLineCap)shape.EndCapType;
-                path.StrokeStartLineCap = (PenLineCap)shape.StartCapType;
-
-                imageGrid.Children.Add(path);
             }
 
             imageGrid.HorizontalAlignment = HorizontalAlignment.Stretch;

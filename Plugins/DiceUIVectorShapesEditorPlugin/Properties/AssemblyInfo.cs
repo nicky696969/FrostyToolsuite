@@ -23,7 +23,7 @@ using System.Windows;
 [assembly: Guid("4b612468-9b6a-4304-88a5-055c3575eb3d")]
 
 [assembly: PluginDisplayName("DiceUIVectorShapeEditor")]
-[assembly: PluginAuthor("wannkunstbeikor")]
+[assembly: PluginAuthor("wannkunstbeikor & Dyvinia")]
 [assembly: PluginVersion("1.0.0.0")]
 
 [assembly: RegisterAssetDefinition("DiceUIVectorShapeAsset", typeof(DiceUIVectorShapeAssetDefinition))]
