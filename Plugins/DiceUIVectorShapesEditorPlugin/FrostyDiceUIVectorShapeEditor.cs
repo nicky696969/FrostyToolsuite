@@ -80,19 +80,20 @@ namespace DiceUIVectorShapesEditorPlugin
         private void UpdateCanvas()
         {
             dynamic vectorShapes = RootObject;
-            Grid imageGrid = new Grid()
-            {
+            Grid imageGrid = new Grid() {
                 Margin = new Thickness(5)
             };
 
+            
+
             Polygon layoutRect = new Polygon();
             layoutRect.Stroke = new SolidColorBrush(Color.FromRgb(50, 50, 50));
-            layoutRect.StrokeThickness = (vectorShapes.LayoutRect.z - vectorShapes.LayoutRect.x) / 100;
-            if (!OutlineVisible) layoutRect.StrokeThickness = 0;
-            layoutRect.Points.Add(new Point(vectorShapes.LayoutRect.x, vectorShapes.LayoutRect.y));
-            layoutRect.Points.Add(new Point(vectorShapes.LayoutRect.z, vectorShapes.LayoutRect.y));
-            layoutRect.Points.Add(new Point(vectorShapes.LayoutRect.z, vectorShapes.LayoutRect.w));
-            layoutRect.Points.Add(new Point(vectorShapes.LayoutRect.x, vectorShapes.LayoutRect.w));
+            layoutRect.StrokeThickness = 1 ;
+            if (!OutlineVisible) layoutRect.Stroke = new SolidColorBrush(Color.FromArgb(0, 0, 0, 0));
+            layoutRect.Points.Add(new Point(vectorShapes.LayoutRect.x, vectorShapes.LayoutRect.y)); // top left
+            layoutRect.Points.Add(new Point(vectorShapes.LayoutRect.z, vectorShapes.LayoutRect.y)); // top right
+            layoutRect.Points.Add(new Point(vectorShapes.LayoutRect.z, vectorShapes.LayoutRect.w)); // bottom right
+            layoutRect.Points.Add(new Point(vectorShapes.LayoutRect.x, vectorShapes.LayoutRect.w)); // bottom left
 
             foreach (dynamic shape in vectorShapes.Shapes) {
                 if (shape.Path.Corners.Count != 0) {
