@@ -21,6 +21,7 @@ namespace DiceUIVectorShapesEditorPlugin
     [TemplatePart(Name = PART_LodComboBox, Type = typeof(ComboBox))]
     [TemplatePart(Name = PART_AssetPropertyGrid, Type = typeof(FrostyPropertyGrid))]
     [TemplatePart(Name = PART_Panel, Type = typeof(FrostyDockablePanel))]
+    [TemplatePart(Name = PART_LockButton, Type = typeof(ToggleButton))]
     public class FrostyDiceUIVectorShapeEditor : FrostyAssetEditor
     {
         private const string PART_Canvas = "PART_Canvas";
@@ -28,6 +29,7 @@ namespace DiceUIVectorShapesEditorPlugin
         private const string PART_LodComboBox = "PART_LodComboBox";
         private const string PART_AssetPropertyGrid = "PART_AssetPropertyGrid";
         private const string PART_Panel = "PART_Panel";
+        private const string PART_LockButton = "PART_LockButton";
 
         #region -- GridVisible --
         public static readonly DependencyProperty GridVisibleProperty = DependencyProperty.Register("GridVisible", typeof(bool), typeof(FrostyDiceUIVectorShapeEditor), new FrameworkPropertyMetadata(false));
@@ -47,9 +49,18 @@ namespace DiceUIVectorShapesEditorPlugin
         }
         #endregion
 
+        #region -- ViewLock --
+        public static readonly DependencyProperty ViewLockProperty = DependencyProperty.Register("ViewLock", typeof(bool), typeof(FrostyDiceUIVectorShapeEditor), new FrameworkPropertyMetadata(true));
+        public bool ViewLock {
+            get => (bool)GetValue(ViewLockProperty);
+            set => SetValue(ViewLockProperty, value);
+        }
+        #endregion
+
         private Viewbox canvas;
 
         private ToggleButton outline;
+        private ToggleButton viewLock;
         private ComboBox lodComboBox;
         private bool firstTimeLoad = true;
         private FrostyPropertyGrid pg;
@@ -79,6 +90,7 @@ namespace DiceUIVectorShapesEditorPlugin
             outline = GetTemplateChild(PART_Outline) as ToggleButton;
             outline.Checked += FrostySvgImageEditor_Update;
             outline.Unchecked += FrostySvgImageEditor_Update;
+            viewLock = GetTemplateChild(PART_LockButton) as ToggleButton;
             lodComboBox = GetTemplateChild(PART_LodComboBox) as ComboBox;
             lodComboBox.SelectionChanged += LodComboBox_SelectionChanged;
             pg = GetTemplateChild(PART_AssetPropertyGrid) as FrostyPropertyGrid;
@@ -333,11 +345,14 @@ namespace DiceUIVectorShapesEditorPlugin
             Grid grid = canvas.Child as Grid;
             int index = grid.Children.IndexOf((Path)sender);
             lodComboBox.SelectedIndex = index;
+            //dynamic vectorShapes = RootObject;
+            //pg.SetClass(vectorShapes.Shapes[index - 1]);
         }
 
         private void PointButton_PreviewMouseLeftButtonUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
             if (!isDragging) return;
+            if ((bool)viewLock.IsChecked) return;
             isDragging = false;
             var draggable = sender as CornerButton;
             Point currentPosition = e.GetPosition(canvas.Child);
@@ -354,6 +369,7 @@ namespace DiceUIVectorShapesEditorPlugin
 
         private void PointButton_PreviewMouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
+            if ((bool)viewLock.IsChecked) return;
             var draggableControl = sender as CornerButton;
             originTT = draggableControl.RenderTransform as TranslateTransform ?? new TranslateTransform();
             isDragging = true;
@@ -363,6 +379,7 @@ namespace DiceUIVectorShapesEditorPlugin
 
         private void PointButton_MouseUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
+            if ((bool)viewLock.IsChecked) return;
             isDragging = false;
             var draggable = sender as CornerButton;
             UpdateCanvas();
@@ -371,6 +388,7 @@ namespace DiceUIVectorShapesEditorPlugin
 
         private void PointButton_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
         {
+            if ((bool)viewLock.IsChecked) return;
             var draggable = sender as CornerButton;
             if (isDragging && draggable != null)
             {
@@ -387,6 +405,7 @@ namespace DiceUIVectorShapesEditorPlugin
 
         private void PointButton_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
+            if ((bool)viewLock.IsChecked) return;
             var draggableControl = sender as CornerButton;
             originTT = draggableControl.RenderTransform as TranslateTransform ?? new TranslateTransform();
             isDragging = true;

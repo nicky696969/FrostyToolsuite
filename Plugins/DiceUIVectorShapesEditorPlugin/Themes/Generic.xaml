@@ -63,6 +63,15 @@
                                                 <ComboBox x:Name="PART_LodComboBox" Height="22" Width="75" Padding="4,2,4,2"/>
                                             </StackPanel>
                                         </Border>
+                                        <Border Background="{StaticResource ControlBackground}" Margin="1,0,0,0">
+                                            <StackPanel VerticalAlignment="Center" Orientation="Horizontal" Margin="6,0,6,0" HorizontalAlignment="Right">
+                                                <ToggleButton x:Name="PART_LockButton" Width="22" Margin="0" IsChecked="{Binding Path=ViewLock, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" ToolTip="Lock viewport point editing">
+                                                    <ToggleButton.Content>
+                                                        <Image Grid.Column="0" Width="14" Source="/FrostyCore;component/Images/Assets/EncryptedFileType.png"/>
+                                                    </ToggleButton.Content>
+                                                </ToggleButton>
+                                            </StackPanel>
+                                        </Border>
                                     </DockPanel>
                                 </Border>
                                 <Grid Grid.Row="1" x:Name="bkgnd" Background="{StaticResource gridBackground}">
