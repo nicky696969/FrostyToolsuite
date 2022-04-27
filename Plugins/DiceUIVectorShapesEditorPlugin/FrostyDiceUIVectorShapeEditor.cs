@@ -16,10 +16,12 @@ namespace DiceUIVectorShapesEditorPlugin
 {
     [TemplatePart(Name = PART_Canvas, Type = typeof(Viewbox))]
     [TemplatePart(Name = PART_Outline, Type = typeof(ToggleButton))]
+    [TemplatePart(Name = PART_LodComboBox, Type = typeof(ComboBox))]
     public class FrostyDiceUIVectorShapeEditor : FrostyAssetEditor
     {
         private const string PART_Canvas = "PART_Canvas";
         private const string PART_Outline = "PART_Outline";
+        private const string PART_LodComboBox = "PART_LodComboBox";
 
         #region -- GridVisible --
         public static readonly DependencyProperty GridVisibleProperty = DependencyProperty.Register("GridVisible", typeof(bool), typeof(FrostyDiceUIVectorShapeEditor), new FrameworkPropertyMetadata(false));
@@ -40,6 +42,7 @@ namespace DiceUIVectorShapesEditorPlugin
 
         private Viewbox canvas;
         private ToggleButton outline;
+        private ComboBox lodComboBox;
 
         static FrostyDiceUIVectorShapeEditor()
         {
@@ -61,10 +64,27 @@ namespace DiceUIVectorShapesEditorPlugin
             outline = GetTemplateChild(PART_Outline) as ToggleButton;
             outline.Checked += FrostySvgImageEditor_Update;
             outline.Unchecked += FrostySvgImageEditor_Update;
+            lodComboBox = GetTemplateChild(PART_LodComboBox) as ComboBox;
+            lodComboBox.SelectionChanged += LodComboBox_SelectionChanged;
         }
 
         private void FrostySvgImageEditor_Update(object sender, RoutedEventArgs e)
         {
+            UpdateCanvas();
+
+            dynamic vectorShapes = RootObject;
+            int old = lodComboBox.SelectedIndex;
+            lodComboBox.Items.Clear();
+            lodComboBox.Items.Add("None");
+            for (int i = 0; i < vectorShapes.Shapes.Count; i++)
+                lodComboBox.Items.Add(i);
+            if (old > (lodComboBox.Items.Count - 1) || old == -1) lodComboBox.SelectedIndex = 0;
+            else lodComboBox.SelectedIndex = old;
+        }
+
+        private void LodComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e) {
+            if (lodComboBox.SelectedIndex == -1)
+                return;
             UpdateCanvas();
         }
 
@@ -84,8 +104,6 @@ namespace DiceUIVectorShapesEditorPlugin
                 Margin = new Thickness(5)
             };
 
-            
-
             Polygon layoutRect = new Polygon();
             layoutRect.Stroke = new SolidColorBrush(Color.FromRgb(50, 50, 50));
             layoutRect.StrokeThickness = 1 ;
@@ -94,6 +112,7 @@ namespace DiceUIVectorShapesEditorPlugin
             layoutRect.Points.Add(new Point(vectorShapes.LayoutRect.z, vectorShapes.LayoutRect.y)); // top right
             layoutRect.Points.Add(new Point(vectorShapes.LayoutRect.z, vectorShapes.LayoutRect.w)); // bottom right
             layoutRect.Points.Add(new Point(vectorShapes.LayoutRect.x, vectorShapes.LayoutRect.w)); // bottom left
+            imageGrid.Children.Add(layoutRect);
 
             foreach (dynamic shape in vectorShapes.Shapes) {
                 if (shape.Path.Corners.Count != 0) {
@@ -157,12 +176,53 @@ namespace DiceUIVectorShapesEditorPlugin
 
                     imageGrid.Children.Add(path);
                 }
+
+                
+            }
+
+            foreach (dynamic shape in vectorShapes.Shapes) {
+                int shapeIndex = vectorShapes.Shapes.IndexOf(shape);
+                if (lodComboBox.SelectedIndex - 1 == shapeIndex) {
+                    for (int i = 0; i < shape.Path.Corners.Count; i++) {
+                        Point point = new Point(shape.Path.Corners[i].Position.x, shape.Path.Corners[i].Position.y);
+
+                        Button pointButton = new Button();
+                        pointButton.HorizontalAlignment = HorizontalAlignment.Left;
+                        pointButton.VerticalAlignment = VerticalAlignment.Top;
+                        pointButton.Margin = new Thickness(point.X - 1, point.Y - 1, 0, 0);
+                        pointButton.Padding = new Thickness(0.25);
+                        pointButton.Height = 2;
+                        pointButton.Width = 2;
+
+                        pointButton.Content = i;
+                        pointButton.FontSize = 1;
+
+                        Style buttonStyle = new Style(typeof(Button));
+                        buttonStyle.BasedOn = (Style)FindResource(typeof(Button));
+                        buttonStyle.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.Black));
+                        buttonStyle.Setters.Add(new Setter(Control.BackgroundProperty, Brushes.White));
+                        buttonStyle.Setters.Add(new Setter(Border.CornerRadiusProperty, new CornerRadius(3)));
+
+                        Trigger focusTrigger = new Trigger();
+                        focusTrigger.Property = Control.IsMouseOverProperty;
+                        focusTrigger.Value = true;
+                        focusTrigger.Setters.Add(new Setter(Control.OpacityProperty, 0.99));
+
+                        buttonStyle.Triggers.Add(focusTrigger);
+
+                        Style borderStyle = new Style(typeof(Border));
+                        borderStyle.Setters.Add(new Setter(Border.CornerRadiusProperty, new CornerRadius(4)));
+                        pointButton.Resources.Add(typeof(Border), borderStyle);
+
+                        pointButton.Style = buttonStyle;
+
+                        imageGrid.Children.Add(pointButton);
+                    }
+                }
             }
 
             imageGrid.HorizontalAlignment = HorizontalAlignment.Stretch;
             imageGrid.VerticalAlignment = VerticalAlignment.Stretch;
-
-            imageGrid.Children.Add(layoutRect);
 
             canvas.Child = imageGrid;
         }
