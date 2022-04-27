@@ -201,7 +201,6 @@ namespace DiceUIVectorShapesEditorPlugin
                         buttonStyle.BasedOn = (Style)FindResource(typeof(Button));
                         buttonStyle.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.Black));
                         buttonStyle.Setters.Add(new Setter(Control.BackgroundProperty, Brushes.White));
-                        buttonStyle.Setters.Add(new Setter(Border.CornerRadiusProperty, new CornerRadius(3)));
 
                         Trigger focusTrigger = new Trigger();
                         focusTrigger.Property = Control.IsMouseOverProperty;
