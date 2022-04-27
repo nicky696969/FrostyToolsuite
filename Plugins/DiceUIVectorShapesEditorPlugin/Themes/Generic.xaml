@@ -59,7 +59,7 @@
                                         </Border>
                                         <Border Background="{StaticResource ControlBackground}" Margin="1,0,0,0">
                                             <StackPanel VerticalAlignment="Center" Orientation="Horizontal" Margin="6,0,6,0">
-                                                <TextBlock Text="Shape Buttons:" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{StaticResource FontColor}"/>
+                                                <TextBlock Text="Buttons for Shape:" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{StaticResource FontColor}"/>
                                                 <ComboBox x:Name="PART_LodComboBox" Height="22" Width="75" Padding="4,2,4,2"/>
                                             </StackPanel>
                                         </Border>
