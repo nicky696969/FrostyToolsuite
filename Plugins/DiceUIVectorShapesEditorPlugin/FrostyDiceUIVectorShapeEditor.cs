@@ -284,9 +284,8 @@ namespace DiceUIVectorShapesEditorPlugin
         }
 
         public CornerButton GenerateCornerButtons(dynamic shape, int i, double area) {
-            double scale = Math.Sqrt(Math.Sqrt(area)) / 2;
-
             Point point = new Point(shape.Path.Corners[i].Position.x, shape.Path.Corners[i].Position.y);
+            double scale = Math.Sqrt(Math.Sqrt(area)) / 2;
 
             CornerButton pointButton = new CornerButton();
             pointButton.HorizontalAlignment = HorizontalAlignment.Left;
@@ -325,15 +324,12 @@ namespace DiceUIVectorShapesEditorPlugin
                 buttonStyle.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(50, 50, 50))));
             }
                 
-
             pointButton.Style = buttonStyle;
             
-
             return pointButton;
         }
 
         private void Path_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e) {
-            dynamic vectorShapes = RootObject;
             Grid grid = canvas.Child as Grid;
             int index = grid.Children.IndexOf((Path)sender);
             lodComboBox.SelectedIndex = index;
@@ -341,7 +337,7 @@ namespace DiceUIVectorShapesEditorPlugin
 
         private void PointButton_PreviewMouseLeftButtonUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
-            if (isDragging == false) return;
+            if (!isDragging) return;
             isDragging = false;
             var draggable = sender as CornerButton;
             Point currentPosition = e.GetPosition(canvas.Child);
