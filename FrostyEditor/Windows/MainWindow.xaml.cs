@@ -55,9 +55,8 @@ namespace FrostyEditor
         public MainWindow()
         {
             FrostySdk.Attributes.GlobalAttributes.DisplayModuleInClassId = Config.Get<bool>("DisplayModuleInId", false);
-            //FrostySdk.Attributes.GlobalAttributes.DisplayModuleInClassId = Config.Get<bool>("Asset", "DisplayModuleInId", true);
             BookmarkItemDoubleClickCommand = new ItemDoubleClickCommand(BookmarkTreeView_MouseDoubleClick);
-            Bookmarks.BookmarkDb.LoadDb();
+
             project = new FrostyProject();
 
             InitializeComponent();
@@ -100,14 +99,6 @@ namespace FrostyEditor
                 launchButton.IsEnabled = true;
             }
 
-            InitGameSpecificMenus();
-
-            LoadMenuExtensions();
-            LoadTabExtensions();
-            LoadDataExplorerMenuItemExtensions();
-
-            LoadedPluginsList.ItemsSource = App.PluginManager.LoadedPlugins;
-
             if (toolsMenuItem.Items.Count != 0)
                 toolsMenuItem.Items.Add(new Separator());
 
@@ -130,6 +121,28 @@ namespace FrostyEditor
             TaskbarItemInfo = new System.Windows.Shell.TaskbarItemInfo();
 
             currentExplorer = dataExplorer;
+        }
+
+        private void LoadDefaultTabs()
+        {
+
+        }
+        private void LoadDefaultMenuItems()
+        {
+
+        }
+
+        private void ClearPluginExtensions()
+        {
+            miscTabControl.Items.Clear();
+        }
+        private void LoadPluginExtensions()
+        {
+            InitGameSpecificMenus();
+
+            LoadMenuExtensions();
+            LoadTabExtensions();
+            LoadDataExplorerMenuItemExtensions();
         }
 
         private void LoadMenuExtensions()
@@ -187,7 +200,6 @@ namespace FrostyEditor
                 foundMenuItem.Items.Add(menuExtItem);
             }
         }
-
         private void LoadDataExplorerMenuItemExtensions()
         {
             foreach (var contextItemExtension in App.PluginManager.DataExplorerContextMenuExtensions)
@@ -201,7 +213,6 @@ namespace FrostyEditor
                 dataExplorer.AssetContextMenu.Items.Add(contextMenuItem);
             }
         }
-
         private void LoadTabExtensions()
         {
             foreach (var tabExtension in App.PluginManager.TabExtensions)
@@ -274,7 +285,7 @@ namespace FrostyEditor
 
         private void UpdateWindowTitle()
         {
-            Title = "Frosty Editor - " + App.Version + " (" + ProfilesLibrary.DisplayName + ") ";
+            Title = "Frosty Editor - " + Frosty.Core.App.Version + " (" + ProfilesLibrary.DisplayName + ") ";
 
             if (ProfilesLibrary.EnableExecution)
                 Title += "[" + project.DisplayName + "]";
@@ -285,8 +296,6 @@ namespace FrostyEditor
         private void FrostyWindow_Loaded(object sender, EventArgs e)
         {
             (App.Logger as FrostyLogger).AddBinding(tb, TextBox.TextProperty);
-            dataExplorer.ItemsSource = App.AssetManager.EnumerateEbx();
-            legacyExplorer.ItemsSource = App.AssetManager.EnumerateCustomAssets("legacy");
 
             DirectoryInfo di = new DirectoryInfo("Mods/" + ProfilesLibrary.ProfileName);
             if (!di.Exists)
@@ -294,10 +303,8 @@ namespace FrostyEditor
 
             // kick off autosave timer
             bool enabled = Config.Get<bool>("AutosaveEnabled", true);
-            //bool enabled = Config.Get<bool>("Autosave", "Enabled", true);
             if (enabled)
             {
-                //int timerInterval = Config.Get<int>("Autosave", "Period", 5) * 60 * 1000;
                 int timerInterval = Config.Get<int>("AutosavePeriod", 5) * 60 * 1000;
                 if (timerInterval > 0)
                 {
@@ -306,6 +313,11 @@ namespace FrostyEditor
                     autoSaveTimer.AutoReset = false;
                     autoSaveTimer.Start();
                 }
+            }
+
+            if (ProfilesLibrary.HasLoadedProfile)
+            {
+                Bookmarks.BookmarkDb.LoadDb();
             }
 
             if (App.OpenProject) {
@@ -555,46 +567,53 @@ namespace FrostyEditor
         {
             autoSaveTimer?.Stop();
 
-            // close all open tabs
-            RemoveAllTabs();
-
-            FrostyProject newProject = null;
-            FrostyTaskWindow.Show("Loading Project", "", (task) =>
+            if (saveProject)
             {
-                if (saveProject)
-                {
-                    project.Save();
-                    App.Logger.Log("Project saved to {0}", project.Filename);
-                }
+                project.Save();
+                App.Logger.Log("Project saved to {0}", project.Filename);
+            }
 
-                task.Update(filename);
+            // load project
+            FrostyProject newProject = new FrostyProject();
+            if (!newProject.Load(filename))
+            {
+                // failed to load for whatever reason
+                App.Logger.LogWarning("Failed to load {0}", filename);
+                App.NotificationManager.Show("Failed to load project");
 
-                // clear all modifications
-                App.AssetManager.Reset();
-
-                // load project
-                newProject = new FrostyProject();
-                if (!newProject.Load(filename))
-                {
-                    // failed to load for whatever reason
-                    App.Logger.LogWarning("Failed to load {0}", filename);
-                    App.NotificationManager.Show("Failed to load project");
-
-                    newProject = null;
-                }
-            });
+                newProject = null;
+            }
 
             if (newProject != null)
             {
+                // close all open tabs
+                RemoveAllTabs();
+
+                ClearPluginExtensions();
+
                 project = newProject;
 
-                dataExplorer.ShowOnlyModified = false;
-                dataExplorer.ShowOnlyModified = true;
-                dataExplorer.RefreshItems();
+                // update UI
+                if (project.RequiresNewProfile)
+                {
+                    LoadedPluginsList.ItemsSource = App.PluginManager.LoadedPlugins;
+
+                    LoadPluginExtensions();
+
+                    dataExplorer.ItemsSource = App.AssetManager.EnumerateEbx();
+                    legacyExplorer.ItemsSource = App.AssetManager.EnumerateCustomAssets("legacy");
+                }
+                else
+                {
+                    dataExplorer.RefreshItems();
+                    legacyExplorer.RefreshItems();
+                }
 
                 legacyExplorer.ShowOnlyModified = false;
                 legacyExplorer.ShowOnlyModified = true;
-                legacyExplorer.RefreshItems();
+
+                dataExplorer.ShowOnlyModified = false;
+                dataExplorer.ShowOnlyModified = true;
 
                 // report success
                 App.Logger.Log("Loaded {0}", project.Filename);
@@ -836,8 +855,10 @@ namespace FrostyEditor
                 }
             }
 
-            Bookmarks.BookmarkDb.SaveDb();
-            //Config.Save(App.configFilename);
+            if (ProfilesLibrary.HasLoadedProfile)
+            {
+                Bookmarks.BookmarkDb.SaveDb();
+            }
         }
 
         private void dataExplorer_SelectedAssetDoubleClick(object sender, RoutedEventArgs e)
@@ -1129,7 +1150,6 @@ namespace FrostyEditor
             }
             UpdateBookmarkFilters();
             Bookmarks.BookmarkDb.SaveDb();
-            //Config.Save(App.configFilename);
         }
 
         private void RemoveSelectedBookmark()
@@ -1147,7 +1167,6 @@ namespace FrostyEditor
                 }
                 UpdateBookmarkFilters();
                 Bookmarks.BookmarkDb.SaveDb();
-                //Config.Save(App.configFilename);
             }
         }
 
@@ -1180,7 +1199,6 @@ namespace FrostyEditor
             TriggerPulseAnimation();
             UpdateBookmarkFilters();
             Bookmarks.BookmarkDb.SaveDb();
-            //Config.Save(App.configFilename);
         }
 
         private void BookmarkAddButton_Click(object sender, RoutedEventArgs e)
@@ -1316,7 +1334,6 @@ namespace FrostyEditor
         {
             UpdateBookmarkFilters();
             Bookmarks.BookmarkDb.SaveDb();
-            //Config.Save(App.configFilename);
             Focus();
         }
 
