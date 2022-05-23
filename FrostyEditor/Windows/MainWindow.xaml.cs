@@ -93,10 +93,7 @@ namespace FrostyEditor.Windows
                 CommandBindings.Add(new CommandBinding(launchGameCmd, launchButton_Click));
                 LaunchButton.IsEnabled = true;
             }
-
-            if (ToolsMenuItem.Items.Count != 0)
-                ToolsMenuItem.Items.Add(new Separator());
-
+            
             MenuItem optionsMenuItem = new MenuItem()
             {
                 Header = "Options",
@@ -104,6 +101,7 @@ namespace FrostyEditor.Windows
             };
             optionsMenuItem.Click += optionsMenuItem_Click;
             ToolsMenuItem.Items.Add(optionsMenuItem);
+            ToolsMenuItem.Items.Add(new Separator());
 
             Bookmarks.BookmarkDb.ContextChanged += BookmarkDb_ContextChanged;
             BookmarkContextPicker.ItemsSource = Bookmarks.BookmarkDb.Contexts.Values;
@@ -509,6 +507,26 @@ namespace FrostyEditor.Windows
         }
 
         private void newModMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (!ProfilesLibrary.HasLoadedProfile)
+            {
+                string selectedProfileName = FrostyProfileSelectWindow.Show();
+                if (!string.IsNullOrEmpty(selectedProfileName))
+                {
+                    SelectProfile(selectedProfileName);
+                }
+            }
+
+            NewProject();
+        }
+
+        private static void SelectProfile(string profile)
+        {
+            Frosty.Core.App.ClearProfileData();
+            Frosty.Core.App.LoadProfile(profile);
+        }
+        
+        private void NewProject()
         {
             autoSaveTimer?.Stop();
 
