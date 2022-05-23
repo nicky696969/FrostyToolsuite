@@ -1,54 +1,49 @@
-﻿using Frosty.Controls;
-using Frosty.ModSupport;
-using FrostyEditor.Windows;
-using FrostySdk;
-using FrostySdk.IO;
-using FrostySdk.Managers;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
-using System.Reflection;
+using System.Linq;
+using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Navigation;
 using System.Windows.Media.Animation;
-using Microsoft.Win32;
-using System.Text;
-using FrostySdk.Ebx;
-using System.Threading;
+using System.Windows.Navigation;
+using Frosty.Controls;
 using Frosty.Core;
-using Frosty.Core.Converters;
-using Frosty.Core.Controls;
-using Frosty.Core.Interfaces;
-using Bookmarks = Frosty.Core.Bookmarks;
-using Frosty.Core.Windows;
-using Frosty.Core.Legacy;
 using Frosty.Core.Commands;
+using Frosty.Core.Controls;
+using Frosty.Core.Converters;
+using Frosty.Core.Interfaces;
+using Frosty.Core.Legacy;
 using Frosty.Core.Mod;
+using Frosty.Core.Windows;
+using Frosty.ModSupport;
 using FrostyCore;
-using System.Threading.Tasks;
+using FrostySdk;
+using FrostySdk.IO;
+using FrostySdk.Managers;
+using Microsoft.Win32;
+using Bookmarks = Frosty.Core.Bookmarks;
 
-namespace FrostyEditor
+namespace FrostyEditor.Windows
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class MainWindow : FrostyWindow, IEditorWindow
+    public partial class MainWindow : IEditorWindow
     {
         public FrostyDataExplorer DataExplorer => dataExplorer;
         public FrostyDataExplorer LegacyExplorer => legacyExplorer;
         public FrostyDataExplorer VisibleExplorer => currentExplorer;
         public TabControl MiscTabControl => miscTabControl;
 
+        public FrostyProject Project => project;
+        
         private FrostyProject project;
         private System.Timers.Timer autoSaveTimer;
-
-        public FrostyProject Project => project;
-        public FrostyDataExplorer currentExplorer;
+        private FrostyDataExplorer currentExplorer;
 
         public ItemDoubleClickCommand BookmarkItemDoubleClickCommand { get; private set; }
 
@@ -62,7 +57,7 @@ namespace FrostyEditor
             InitializeComponent();
 
             explorerTabContent.HeaderControl = explorerTabControl;
-            tabContent.HeaderControl = tabControl;
+            tabContent.HeaderControl = TabControl;
             miscTabContent.HeaderControl = miscTabControl;
 
             UpdateWindowTitle();
@@ -96,11 +91,11 @@ namespace FrostyEditor
             if(ProfilesLibrary.EnableExecution)
             {
                 CommandBindings.Add(new CommandBinding(launchGameCmd, launchButton_Click));
-                launchButton.IsEnabled = true;
+                LaunchButton.IsEnabled = true;
             }
 
-            if (toolsMenuItem.Items.Count != 0)
-                toolsMenuItem.Items.Add(new Separator());
+            if (ToolsMenuItem.Items.Count != 0)
+                ToolsMenuItem.Items.Add(new Separator());
 
             MenuItem optionsMenuItem = new MenuItem()
             {
@@ -108,7 +103,7 @@ namespace FrostyEditor
                 Icon = new Image() { Source = new ImageSourceConverter().ConvertFromString("pack://application:,,,/FrostyCore;component/Images/Settings.png") as ImageSource },
             };
             optionsMenuItem.Click += optionsMenuItem_Click;
-            toolsMenuItem.Items.Add(optionsMenuItem);
+            ToolsMenuItem.Items.Add(optionsMenuItem);
 
             Bookmarks.BookmarkDb.ContextChanged += BookmarkDb_ContextChanged;
             BookmarkContextPicker.ItemsSource = Bookmarks.BookmarkDb.Contexts.Values;
@@ -123,54 +118,84 @@ namespace FrostyEditor
             currentExplorer = dataExplorer;
         }
 
-        private void LoadDefaultTabs()
-        {
-
-        }
-        private void LoadDefaultMenuItems()
-        {
-
-        }
-
+        #region PluginExtensions
         private void ClearPluginExtensions()
         {
-            miscTabControl.Items.Clear();
+            ClearToolbarExtensions();
+            ClearMenuExtensions();
+            ClearTabExtensions();
+            ClearDataExplorerMenuItemExtensions();
         }
         private void LoadPluginExtensions()
         {
             InitGameSpecificMenus();
 
+            LoadToolbarExtensions();
             LoadMenuExtensions();
             LoadTabExtensions();
             LoadDataExplorerMenuItemExtensions();
         }
 
+        private void ClearToolbarExtensions()
+        {
+            EditorToolbarItems.Items.Clear();
+        }
+        private void LoadToolbarExtensions()
+        {
+            IEnumerable<ToolbarItem> toolbarItems = App.PluginManager.ToolbarExtensions.Select(toolbarExtension => new ToolbarItem(toolbarExtension.Name, "", null, toolbarExtension.ToolbarItemClicked, true));
+            EditorToolbarItems.ItemsSource = toolbarItems;
+        }
+        
+        private void ClearMenuExtensions()
+        {
+            // iterate backwards through top leve menu items
+            for (int i = menu.Items.Count - 1; i >= 0; i--)
+            {
+                MenuItem topLevelItem = menu.Items[i] as MenuItem;
+                if (topLevelItem == null)
+                    continue;
+                
+                // remove top level item if it was added from a plugin
+                if (topLevelItem.Tag is MenuExtension)
+                {
+                    menu.Items.RemoveAt(i);
+                    continue;
+                }
+
+                for (int j = topLevelItem.Items.Count - 1; j >= 0; j--)
+                {
+                    MenuItem item = topLevelItem.Items[j] as MenuItem;
+
+                    // remove item if it was added from a plugin
+                    if (item?.Tag is MenuExtension)
+                    {
+                        topLevelItem.Items.RemoveAt(i);
+                    }
+                }
+            }
+        }
         private void LoadMenuExtensions()
         {
             // Add menu extensions to Editor
-            foreach (var menuExtension in App.PluginManager.MenuExtensions)
+            foreach (MenuExtension menuExtension in App.PluginManager.MenuExtensions)
             {
-                MenuItem foundMenuItem = null;
-                foreach (MenuItem menuItem in menu.Items)
-                { 
-                    // contains top level menu item already
-                    if (menuExtension.TopLevelMenuName.Equals(menuItem.Header as string, StringComparison.OrdinalIgnoreCase))
-                    {
-                        foundMenuItem = menuItem;
-                        break;
-                    }
-                }
-
+                // find top level menu if there is one, and create one if not
+                MenuItem foundMenuItem = menu.Items.Cast<MenuItem>().FirstOrDefault(menuItem => menuExtension.TopLevelMenuName.Equals(menuItem.Header as string, StringComparison.OrdinalIgnoreCase));
                 if (foundMenuItem == null)
                 {
-                    foundMenuItem = new MenuItem() { Header = menuExtension.TopLevelMenuName };
+                    foundMenuItem = new MenuItem()
+                    {
+                        Header = menuExtension.TopLevelMenuName,
+                        Tag = menuExtension
+                    };
                     menu.Items.Add(foundMenuItem);
                 }
-
+                
+                // find sub level menu if there is one, and create one if not
                 if (!string.IsNullOrEmpty(menuExtension.SubLevelMenuName))
                 {
                     MenuItem parentMenuItem = null;
-                    foreach (var menuItem in foundMenuItem.Items)
+                    foreach (object menuItem in foundMenuItem.Items)
                     {
                         if (menuItem is MenuItem item)
                         {
@@ -186,65 +211,104 @@ namespace FrostyEditor
                     if (parentMenuItem == null)
                     {
                         parentMenuItem = foundMenuItem;
-                        foundMenuItem = new MenuItem { Header = menuExtension.SubLevelMenuName };
+                        foundMenuItem = new MenuItem
+                        {
+                            Header = menuExtension.SubLevelMenuName,
+                            Tag = menuExtension
+                        };
                         parentMenuItem.Items.Add(foundMenuItem);
                     }
                 }
 
+                // create and add menu item to top level menu
                 MenuItem menuExtItem = new MenuItem
                 {
                     Header = menuExtension.MenuItemName,
                     Icon = new Image() { Source = menuExtension.Icon },
-                    Command = menuExtension.MenuItemClicked
+                    Command = menuExtension.MenuItemClicked,
+                    Tag = menuExtension
                 };
                 foundMenuItem.Items.Add(menuExtItem);
             }
         }
+
+        private void ClearDataExplorerMenuItemExtensions()
+        {
+            // iterate backwards through context menu items
+            for (int i = dataExplorer.AssetContextMenu.Items.Count - 1; i >= 0; i--)
+            {
+                MenuItem item = dataExplorer.AssetContextMenu.Items[i] as MenuItem;
+
+                // remove top level item if it was added from a plugin
+                if (item?.Tag is DataExplorerContextMenuExtension)
+                {
+                    dataExplorer.AssetContextMenu.Items.RemoveAt(i);
+                }
+            }
+        }
         private void LoadDataExplorerMenuItemExtensions()
         {
-            foreach (var contextItemExtension in App.PluginManager.DataExplorerContextMenuExtensions)
+            foreach (DataExplorerContextMenuExtension contextItemExtension in App.PluginManager.DataExplorerContextMenuExtensions)
             {
                 MenuItem contextMenuItem = new MenuItem
                 {
                     Header = contextItemExtension.ContextItemName,
                     Icon = new Image() { Source = contextItemExtension.Icon },
-                    Command = contextItemExtension.ContextItemClicked
+                    Command = contextItemExtension.ContextItemClicked,
+                    Tag = contextItemExtension
                 };
                 dataExplorer.AssetContextMenu.Items.Add(contextMenuItem);
             }
         }
+
+        private void ClearTabExtensions()
+        {
+            // iterate backwards through tab items
+            for (int i = miscTabControl.Items.Count - 1; i >= 0; i--)
+            {
+                FrostyTabItem tabItem = miscTabControl.Items[i] as FrostyTabItem;
+
+                // remove top level item if it was added from a plugin
+                if (tabItem?.Tag is TabExtension)
+                {
+                    miscTabControl.Items.RemoveAt(i);
+                }
+            }
+        }
         private void LoadTabExtensions()
         {
-            foreach (var tabExtension in App.PluginManager.TabExtensions)
+            foreach (TabExtension tabExtension in App.PluginManager.TabExtensions)
             {
                 FrostyTabItem tabExtItem = new FrostyTabItem
                 {
                     Header = tabExtension.TabItemName,
                     Content = tabExtension.TabContent,
                     Icon = tabExtension.TabItemIcon,
-                    CloseButtonVisible = false
+                    CloseButtonVisible = false,
+                    Tag = tabExtension
                 };
                 miscTabControl.Items.Add(tabExtItem);
             }
         }
+        #endregion
 
         private void tabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             UpdateDiscordState();
 
-            FrostyTabItem ti = tabControl.SelectedItem as FrostyTabItem;
+            FrostyTabItem ti = TabControl.SelectedItem as FrostyTabItem;
 
             if (!(ti?.Content is FrostyAssetEditor editor))
                 return;
 
-            editorToolbarItems.ItemsSource = editor.RegisterToolbarItems();
+            AssetEditorToolbarItems.ItemsSource = editor.RegisterToolbarItems();
         }
 
         private void UpdateDiscordState()
         {
             string state = "";
 
-            if (tabControl.SelectedItem is FrostyTabItem ti)
+            if (TabControl.SelectedItem is FrostyTabItem ti)
             {
                 string header = ti.Header as string;
                 string tabId = ti.TabId;
@@ -277,10 +341,7 @@ namespace FrostyEditor
 
         private void explorerTabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (explorerTabControl.SelectedItem == dataExplorerTabItem)
-                currentExplorer = dataExplorer;
-            else
-                currentExplorer = legacyExplorer;
+            currentExplorer = Equals(explorerTabControl.SelectedItem, dataExplorerTabItem) ? dataExplorer : legacyExplorer;
         }
 
         private void UpdateWindowTitle()
@@ -295,7 +356,7 @@ namespace FrostyEditor
 
         private void FrostyWindow_Loaded(object sender, EventArgs e)
         {
-            (App.Logger as FrostyLogger).AddBinding(tb, TextBox.TextProperty);
+            (App.Logger as FrostyLogger)?.AddBinding(tb, TextBox.TextProperty);
 
             DirectoryInfo di = new DirectoryInfo("Mods/" + ProfilesLibrary.ProfileName);
             if (!di.Exists)
@@ -332,7 +393,7 @@ namespace FrostyEditor
             tb.ScrollToEnd();
         }
 
-        int lastSaveIndex = 0;
+        private int lastSaveIndex;
         private void AutoSaveTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
             if (project.IsDirty)
@@ -356,10 +417,8 @@ namespace FrostyEditor
 
         private void exitMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            this.Close();
+            Close();
         }
-
-        private static ImageSource PropertiesImage = new ImageSourceConverter().ConvertFromString("pack://application:,,,/FrostyEditor;component/Images/Properties.png") as ImageSource;
 
         private void launchButton_Click(object sender, RoutedEventArgs e)
         {
@@ -373,21 +432,17 @@ namespace FrostyEditor
             CancellationTokenSource cancelToken = new CancellationTokenSource();
 
             Random r = new Random();
-            string editorModName = $"EditorMod{r.Next(1000, 9999).ToString("D4")}.fbmod";
-            launchButton.IsEnabled = false;
+            string editorModName = $"EditorMod{r.Next(1000, 9999):D4}.fbmod";
+            LaunchButton.IsEnabled = false;
 
             // get all mods
-            List<string> modPaths = new List<string>();
-
-            DirectoryInfo modDirectory = new DirectoryInfo($"Mods/{ProfilesLibrary.ProfileName}");
-            foreach (string modPath in Directory.EnumerateFiles($"Mods/{ProfilesLibrary.ProfileName}/", "*.fbmod", SearchOption.AllDirectories))
-                modPaths.Add(Path.GetFileName(modPath));
+            List<string> modPaths = Directory.EnumerateFiles($"Mods/{ProfilesLibrary.ProfileName}/", "*.fbmod", SearchOption.AllDirectories).Select(Path.GetFileName).ToList();
 
             // create temporary editor mod
             ModSettings editorSettings = new ModSettings { Title = "Editor Mod", Author = "Frosty Editor", Version = "1", Category = "Editor" };
 
             // apply mod
-            string additionalArgs = "";
+            const string additionalArgs = "";
             FrostyModExecutor executor = new FrostyModExecutor();
 
             // Set pack
@@ -400,7 +455,7 @@ namespace FrostyEditor
                 {
                     try
                     {
-                        foreach (var executionAction in App.PluginManager.ExecutionActions)
+                        foreach (ExecutionAction executionAction in App.PluginManager.ExecutionActions)
                             executionAction.PreLaunchAction(task.TaskLogger, PluginManagerType.Editor, cancelToken.Token);
 
                         task.Update("Exporting Mod");
@@ -416,14 +471,14 @@ namespace FrostyEditor
                         task.Update("");
                         executor.Run(App.FileSystem, cancelToken.Token, task.TaskLogger, $"Mods/{ProfilesLibrary.ProfileName}/", App.SelectedPack, additionalArgs, modPaths.ToArray());
 
-                        foreach (var executionAction in App.PluginManager.ExecutionActions)
+                        foreach (ExecutionAction executionAction in App.PluginManager.ExecutionActions)
                             executionAction.PostLaunchAction(task.TaskLogger, PluginManagerType.Editor, cancelToken.Token);
                     }
                     catch (OperationCanceledException)
                     {
                         // swollow
 
-                        foreach (var executionAction in App.PluginManager.ExecutionActions)
+                        foreach (ExecutionAction executionAction in App.PluginManager.ExecutionActions)
                             executionAction.PostLaunchAction(task.TaskLogger, PluginManagerType.ModManager, cancelToken.Token);
                     }
 
@@ -441,14 +496,9 @@ namespace FrostyEditor
             if (editorMod.Exists)
                 editorMod.Delete();
 
-            launchButton.IsEnabled = true;
+            LaunchButton.IsEnabled = true;
             App.Logger.Log("Launch complete");
             App.NotificationManager.Show("Launch complete");
-        }
-
-        private void unimplementedMenuItem_Click(object sender, RoutedEventArgs e)
-        {
-            FrostyMessageBox.Show("This feature is currently unimplemented", "Frosty Editor");
         }
 
         public void ExportMod(ModSettings modSettings, string filename, bool bSilent)
@@ -507,22 +557,31 @@ namespace FrostyEditor
             bool savePrevProject = false;
             FrostyOpenFileDialog ofd = new FrostyOpenFileDialog("Open Project", "*.fbproject (Frosty Project)|*.fbproject", "Project");
 
-            if (ofd.ShowDialog())
+            if (!ofd.ShowDialog())
+                return; 
+            
+            if (project.IsDirty)
             {
-                if (project.IsDirty)
+                MessageBoxResult result = FrostyMessageBox.Show("Do you wish to save changes to " + project.DisplayName + "?", "Frosty Editor", MessageBoxButton.YesNoCancel);
+                switch (result)
                 {
-                    MessageBoxResult result = FrostyMessageBox.Show("Do you wish to save changes to " + project.DisplayName + "?", "Frosty Editor", MessageBoxButton.YesNoCancel);
-                    if (result == MessageBoxResult.Cancel)
+                    case MessageBoxResult.Cancel:
                         return;
-
-                    if (result == MessageBoxResult.Yes)
-                    { 
+                    case MessageBoxResult.Yes:
                         savePrevProject = SaveProject(false);
-                    }
+                        break;
+                    case MessageBoxResult.None:
+                        break;
+                    case MessageBoxResult.OK:
+                        break;
+                    case MessageBoxResult.No:
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
                 }
-
-                LoadProject(ofd.FileName, savePrevProject);
             }
+
+            LoadProject(ofd.FileName, savePrevProject);
         }
 
         private void saveModMenuItem_Click(object sender, RoutedEventArgs e)
@@ -672,7 +731,7 @@ namespace FrostyEditor
             if (asset.Type == "EncryptedAsset")
                 return;
 
-            foreach (FrostyTabItem currentTi in tabControl.Items)
+            foreach (FrostyTabItem currentTi in TabControl.Items)
             {
                 if (currentTi.TabId == asset.Name)
                 {
@@ -744,48 +803,48 @@ namespace FrostyEditor
             AddTab(ti);
         }
 
-        public void AddTab(FrostyTabItem ti)
+        private void AddTab(FrostyTabItem ti)
         {
-            tabControl.Items.Add(ti);
-            FrostyTabItem welcomeTabItem = tabControl.Items[0] as FrostyTabItem;
+            TabControl.Items.Add(ti);
+            FrostyTabItem welcomeTabItem = TabControl.Items[0] as FrostyTabItem;
             welcomeTabItem.Visibility = Visibility.Collapsed;
         }
 
-        public void ShutdownEditorAndRemoveTab(FrostyAssetEditor editor, FrostyTabItem ti)
+        private void ShutdownEditorAndRemoveTab(FrostyAssetEditor editor, FrostyTabItem ti)
         {
             editor.Closed();
             if (ti.IsSelected)
-                editorToolbarItems.ItemsSource = null;
-            tabControl.Items.Remove(ti);
-            if (tabControl.Items.Count == 1)
+                AssetEditorToolbarItems.ItemsSource = null;
+            TabControl.Items.Remove(ti);
+            if (TabControl.Items.Count == 1)
             {
-                FrostyTabItem item = tabControl.Items[0] as FrostyTabItem;
+                FrostyTabItem item = TabControl.Items[0] as FrostyTabItem;
 
                 item.Visibility = Visibility.Visible;
                 item.IsSelected = true;
             }
         }
 
-        public void RemoveTab(FrostyTabItem ti)
+        private void RemoveTab(FrostyTabItem ti)
         {
             FrostyBaseEditor editor = ti.Content as FrostyBaseEditor;
             editor?.Closed();
 
-            tabControl.Items.Remove(ti);
-            if (tabControl.Items.Count == 1)
+            TabControl.Items.Remove(ti);
+            if (TabControl.Items.Count == 1)
             {
-                FrostyTabItem item = tabControl.Items[0] as FrostyTabItem;
+                FrostyTabItem item = TabControl.Items[0] as FrostyTabItem;
 
                 item.Visibility = Visibility.Visible;
                 item.IsSelected = true;
             }
         }
 
-        public void RemoveAllTabs()
+        private void RemoveAllTabs()
         {
-            while (tabControl.Items.Count > 1)
+            while (TabControl.Items.Count > 1)
             {
-                FrostyTabItem tabItem = tabControl.Items[1] as FrostyTabItem;
+                FrostyTabItem tabItem = TabControl.Items[1] as FrostyTabItem;
                 if (tabItem.Content is FrostyAssetEditor editor)
                     ShutdownEditorAndRemoveTab(editor, tabItem);
                 else
@@ -793,9 +852,9 @@ namespace FrostyEditor
             }
         }
 
-        public void RefreshTabs()
+        private void RefreshTabs()
         {
-            foreach (FrostyTabItem item in tabControl.Items)
+            foreach (FrostyTabItem item in TabControl.Items)
             {
                 if (item.Content is FrostyAssetEditor editor)
                 {
@@ -815,17 +874,20 @@ namespace FrostyEditor
             }
         }
 
-        private void TabItem_Move(object sender, DragEventArgs e) {
-            if (e.Source is FrostyTabItem tabItemTarget &&
-                e.Data.GetData(typeof(FrostyTabItem)) is FrostyTabItem tabItemSource &&
-                !tabItemTarget.Equals(tabItemSource) &&
-                tabItemTarget.Parent is FrostyTabControl tabControl) {
-                int targetIndex = tabControl.Items.IndexOf(tabItemTarget);
-
-                tabControl.Items.Remove(tabItemSource);
-                tabControl.Items.Insert(targetIndex, tabItemSource);
-                tabItemSource.IsSelected = true;
+        private void TabItem_Move(object sender, DragEventArgs e)
+        {
+            if (!(e.Source is FrostyTabItem tabItemTarget) ||
+                !(e.Data.GetData(typeof(FrostyTabItem)) is FrostyTabItem tabItemSource) ||
+                tabItemTarget.Equals(tabItemSource) || !(tabItemTarget.Parent is FrostyTabControl control))
+            {
+                return;
             }
+            
+            int targetIndex = control.Items.IndexOf(tabItemTarget);
+
+            control.Items.Remove(tabItemSource);
+            control.Items.Insert(targetIndex, tabItemSource);
+            tabItemSource.IsSelected = true;
         }
 
         private void aboutMenuItem_Click(object sender, RoutedEventArgs e)
@@ -890,9 +952,9 @@ namespace FrostyEditor
             if (!entry.IsModified)
                 return;
 
-            for (int i = 1; i < tabControl.Items.Count; i++)
+            for (int i = 1; i < TabControl.Items.Count; i++)
             {
-                FrostyTabItem tabItem = tabControl.Items[i] as FrostyTabItem;
+                FrostyTabItem tabItem = TabControl.Items[i] as FrostyTabItem;
                 if (tabItem.TabId == entry.Name)
                 {
                     RemoveTab(tabItem);
@@ -915,7 +977,7 @@ namespace FrostyEditor
             {
                 FrostyTaskWindow.Show("Importing Legacy Asset", "", (task) =>
                 {
-                    byte[] buffer = null;
+                    byte[] buffer;
                     using (NativeReader reader = new NativeReader(new FileStream(ofd.FileName, FileMode.Open, FileAccess.Read)))
                         buffer = reader.ReadToEnd();
 
@@ -932,37 +994,39 @@ namespace FrostyEditor
             if (legacyExplorer.SelectedAssets.Count == 0)
                 return;
 
-            LegacyFileEntry selectedAsset = legacyExplorer.SelectedAssets[0] as LegacyFileEntry;
-
-            SaveFileDialog sfd = new SaveFileDialog
+            LegacyFileEntry selectedAsset = (LegacyFileEntry)legacyExplorer.SelectedAssets[0];
+            if (selectedAsset != null)
             {
-                Title = "Save Legacy File",
-                Filter = "*." + selectedAsset.Type + " (Legacy Files)|*." + selectedAsset.Type,
-                FileName = selectedAsset.Filename
-            };
-
-            if (sfd.ShowDialog() == true)
-            {
-                IList<AssetEntry> assets = legacyExplorer.SelectedAssets;
-                FrostyTaskWindow.Show("Exporting Legacy Assets", "", (task) =>
+                SaveFileDialog sfd = new SaveFileDialog
                 {
-                    App.AssetManager.SendManagerCommand("legacy", "SetCacheModeEnabled", true);
-                    FileInfo fi = new FileInfo(sfd.FileName);
+                    Title = "Save Legacy File",
+                    Filter = "*." + selectedAsset.Type + " (Legacy Files)|*." + selectedAsset.Type,
+                    FileName = selectedAsset.Filename
+                };
 
-                    int progress = 0;
-                    foreach (LegacyFileEntry asset in assets)
+                if (sfd.ShowDialog() == true)
+                {
+                    IList<AssetEntry> assets = legacyExplorer.SelectedAssets;
+                    FrostyTaskWindow.Show("Exporting Legacy Assets", "", (task) =>
                     {
-                        task.Update(asset.Name, (progress / (double)assets.Count) * 100.0);
-                        progress++;
+                        App.AssetManager.SendManagerCommand("legacy", "SetCacheModeEnabled", true);
+                        FileInfo fi = new FileInfo(sfd.FileName);
 
-                        string outFileName = fi.Directory.FullName + "\\" + asset.Filename + "." + asset.Type;
-                        using (NativeWriter writer = new NativeWriter(new FileStream(outFileName, FileMode.Create)))
-                            writer.Write(new NativeReader(App.AssetManager.GetCustomAsset("legacy", asset)).ReadToEnd());
-                    }
+                        int progress = 0;
+                        foreach (LegacyFileEntry asset in assets)
+                        {
+                            task.Update(asset.Name, (progress / (double)assets.Count) * 100.0);
+                            progress++;
 
-                    App.Logger.Log("Legacy files saved to {0}", fi.Directory.FullName);
-                    App.AssetManager.SendManagerCommand("legacy", "FlushCache");
-                });
+                            string outFileName = fi.Directory.FullName + "\\" + asset.Filename + "." + asset.Type;
+                            using (NativeWriter writer = new NativeWriter(new FileStream(outFileName, FileMode.Create)))
+                                writer.Write(new NativeReader(App.AssetManager.GetCustomAsset("legacy", asset)).ReadToEnd());
+                        }
+
+                        App.Logger.Log("Legacy files saved to {0}", fi.Directory.FullName);
+                        App.AssetManager.SendManagerCommand("legacy", "FlushCache");
+                    });
+                }
             }
         }
 
@@ -991,62 +1055,28 @@ namespace FrostyEditor
             }
         }
 
-        private EbxAssetEntry DuplicateAsset(EbxAssetEntry entry, string newName, bool createNew, Type newType)
-        {
-            EbxAsset asset = App.AssetManager.GetEbx(entry);
-            EbxAsset newAsset = null;
-
-            if (createNew)
-            {
-                newAsset = new EbxAsset(TypeLibrary.CreateObject(newType.Name));
-            }
-            else
-            {
-                using (EbxBaseWriter writer = EbxBaseWriter.CreateWriter(new MemoryStream(), EbxWriteFlags.DoNotSort | EbxWriteFlags.IncludeTransient))
-                {
-                    writer.WriteAsset(asset);
-                    byte[] buf = writer.ToByteArray();
-                    using (EbxReader reader = EbxReader.CreateReader(new MemoryStream(buf)))
-                        newAsset = reader.ReadAsset<EbxAsset>();
-                }
-            }
-
-            newAsset.SetFileGuid(Guid.NewGuid());
-
-            dynamic obj = newAsset.RootObject;
-            obj.Name = newName;
-
-            AssetClassGuid guid = new AssetClassGuid(Utils.GenerateDeterministicGuid(asset.Objects, (Type)obj.GetType(), asset.FileGuid), -1);
-            obj.SetInstanceGuid(guid);
-
-            EbxAssetEntry newEntry = App.AssetManager.AddEbx(newName, newAsset);
-
-            newEntry.AddedBundles.AddRange(entry.EnumerateBundles());
-            newEntry.ModifiedEntry.DependentAssets.AddRange(newAsset.Dependencies);
-
-            return newEntry;
-        }
-
         private void contextMenuExportEbx_Click(object sender, RoutedEventArgs e)
         {
-            EbxAssetEntry entry = dataExplorer.SelectedAsset as EbxAssetEntry;
-
-            AssetDefinition assetDefinition = App.PluginManager.GetAssetDefinition(entry.Type) ?? new AssetDefinition();
-
-            List<AssetExportType> filters = new List<AssetExportType>();
-            assetDefinition.GetSupportedExportTypes(filters);
-
-            string filterString = "";
-            foreach (AssetExportType filter in filters)
-                filterString += "|" + filter.FilterString;
-            filterString = filterString.Trim('|');
-
-            FrostySaveFileDialog sfd = new FrostySaveFileDialog("Export Asset", filterString, assetDefinition.GetType().Name, entry.Filename);
-            if (sfd.ShowDialog())
+            EbxAssetEntry entry = (EbxAssetEntry)dataExplorer.SelectedAsset;
+            if (entry != null)
             {
-                if (assetDefinition.Export(entry, sfd.FileName, filters[sfd.FilterIndex - 1].Extension))
+                AssetDefinition assetDefinition = App.PluginManager.GetAssetDefinition(entry.Type) ?? new AssetDefinition();
+
+                List<AssetExportType> filters = new List<AssetExportType>();
+                assetDefinition.GetSupportedExportTypes(filters);
+
+                string filterString = "";
+                foreach (AssetExportType filter in filters)
+                    filterString += "|" + filter.FilterString;
+                filterString = filterString.Trim('|');
+
+                FrostySaveFileDialog sfd = new FrostySaveFileDialog("Export Asset", filterString, assetDefinition.GetType().Name, entry.Filename);
+                if (sfd.ShowDialog())
                 {
-                    App.Logger.Log("Exported {0} to {1}", entry.Name, sfd.FileName);
+                    if (assetDefinition.Export(entry, sfd.FileName, filters[sfd.FilterIndex - 1].Extension))
+                    {
+                        App.Logger.Log("Exported {0} to {1}", entry.Name, sfd.FileName);
+                    }
                 }
             }
         }
@@ -1109,16 +1139,16 @@ namespace FrostyEditor
 
         private void AddSelectedBookmark()
         {
-            Bookmarks.BookmarkItem newBookmark = null;
             if (Bookmarks.BookmarkDb.CurrentContext?.AvailableTarget != null)
             {
                 Bookmarks.BookmarkTarget target = Bookmarks.BookmarkDb.CurrentContext.AvailableTarget;
 
+                Bookmarks.BookmarkItem newBookmark;
                 if (BookmarkTreeView.SelectedItem != null)
                 {
                     Bookmarks.BookmarkItem parent = BookmarkTreeView.SelectedItem as Bookmarks.BookmarkItem;
                     // Abort if the selected parent is not a folder
-                    if (parent.Target as Bookmarks.FolderBookmarkTarget == null)
+                    if (parent != null && !(parent.Target is Bookmarks.FolderBookmarkTarget))
                     {
                         // Add as a sibling of the selected item
                         parent = parent.Parent;
@@ -1137,8 +1167,11 @@ namespace FrostyEditor
                     else
                     {
                         newBookmark = new Bookmarks.BookmarkItem(target, parent) {Parent = parent};
-                        parent.Children.Add(newBookmark);
-                        parent.IsExpanded = true;
+                        if (parent != null)
+                        {
+                            parent.Children.Add(newBookmark);
+                            parent.IsExpanded = true;
+                        }
                     }
                 }
                 else
@@ -1219,9 +1252,8 @@ namespace FrostyEditor
         private void BookmarkEditLabelButton_Click(object sender, RoutedEventArgs e)
         {
             Stack<Bookmarks.BookmarkItem> stack = new Stack<Bookmarks.BookmarkItem>();
-            Bookmarks.BookmarkItem item = BookmarkTreeView.SelectedItem as Bookmarks.BookmarkItem;
-            Bookmarks.BookmarkItem alsoitem = item;
-            if (item == null)
+
+            if (!(BookmarkTreeView.SelectedItem is Bookmarks.BookmarkItem item))
                 return;
 
             stack.Push(item);
@@ -1240,7 +1272,7 @@ namespace FrostyEditor
             }
 
             FrostyEditableLabel label = FindVisualChild<FrostyEditableLabel>(gen.ContainerFromItem(stack.Pop()));
-            label.Text = (label.Text == null) ? "" : label.Text;
+            label.Text = label.Text ?? "";
             label.BeginEdit();
         }   
 
@@ -1300,7 +1332,7 @@ namespace FrostyEditor
             return result + (visibleOnly ? BookmarkFilter(item) ? 1 : 0 : 1);
         }
 
-        private bool refreshing = false; // For some reason, BookmarkTreeView.Items.Refresh causes recursion here...
+        private bool refreshing; // For some reason, BookmarkTreeView.Items.Refresh causes recursion here...
         private void UpdateBookmarkFilters()
         {
             if (refreshing)
@@ -1337,24 +1369,15 @@ namespace FrostyEditor
             Focus();
         }
 
-        private static SolidColorBrush NormalBrush = new SolidColorBrush(new Color { R = 140, G = 140, B = 140, A = 255 });
+        private static readonly SolidColorBrush NormalBrush = new SolidColorBrush(new Color { R = 140, G = 140, B = 140, A = 255 });
         private void TriggerPulseAnimation()
         {
             BookmarkTabItem.Background = NormalBrush;
             DoubleAnimation lastFadeAnimation = new DoubleAnimation(1.0, 0.0, new Duration(TimeSpan.FromSeconds(1.0))) {FillBehavior = FillBehavior.HoldEnd};
-            NormalBrush.BeginAnimation(LinearGradientBrush.OpacityProperty, lastFadeAnimation);
+            NormalBrush.BeginAnimation(Brush.OpacityProperty, lastFadeAnimation);
         }
 
         #endregion
-
-        private void listBundlesMenuItem_Click(object sender, RoutedEventArgs e)
-        {
-            EbxAssetEntry entry = dataExplorer.SelectedAsset as EbxAssetEntry;
-
-            App.Logger.Log("");
-            foreach (int bundleId in entry.EnumerateBundles())
-                App.Logger.Log(App.AssetManager.GetBundleEntry(bundleId).DisplayName);
-        }
 
         private void optionsMenuItem_Click(object sender, RoutedEventArgs e)
         {
@@ -1364,15 +1387,6 @@ namespace FrostyEditor
 
         private void MiscTabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-        }
-
-        private void ReferenceExplorerList_SelectedAssetDoubleClick(object sender, RoutedEventArgs e)
-        {
-            EbxAssetEntry entry = (sender as FrostyAssetListView).SelectedItem as EbxAssetEntry;
-            if (entry == null)
-                return;
-
-            OpenAsset(entry);
         }
 
         private static T FindVisualChild<T>(DependencyObject depObj) where T : DependencyObject
