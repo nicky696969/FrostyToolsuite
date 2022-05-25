@@ -126,6 +126,11 @@ namespace Frosty.Core.Windows
         public bool UpdateCheckPrerelease { get; set; } = false;
 #endif
 
+        [Category("Applying")]
+        [Description("The thread count that should be used when applying mods. By default is set to the number of processors on the machine")]
+        [EbxFieldMeta(EbxFieldType.Int32)]
+        public int ApplyingThreadCount { get; set; } = Environment.ProcessorCount;
+
         public override void Load()
         {
             List<string> langs = GetLocalizedLanguages();
@@ -146,6 +151,8 @@ namespace Frosty.Core.Windows
 
             UpdateCheck = Config.Get<bool>("UpdateCheck", true);
             UpdateCheckPrerelease = Config.Get<bool>("UpdateCheckPrerelease", false);
+
+            ApplyingThreadCount = Config.Get<int>("ApplyingThreadCount", Environment.ProcessorCount);
 
             //Checks the registry for the current association instead of loading from config
             string KeyName = "frostyproject";
@@ -193,6 +200,8 @@ namespace Frosty.Core.Windows
 
             Config.Add("UpdateCheck", UpdateCheck);
             Config.Add("UpdateCheckPrerelease", UpdateCheckPrerelease);
+
+            Config.Add("ApplyingThreadCount", ApplyingThreadCount);
 
             if (RememberChoice)
                 Config.Add("DefaultProfile", ProfilesLibrary.ProfileName);
@@ -328,17 +337,10 @@ namespace Frosty.Core.Windows
         public bool UpdateCheckPrerelease { get; set; } = false;
 #endif
 
-        //[Category("Mod View")]
-        //[DisplayName("Collapse categories by default")]
-        //[Description("Automatically collapse mod categories in the Available Mods list on startup.")]
-        //[EbxFieldMeta(EbxFieldType.Boolean)]
-        //public bool CollapseCategories { get; set; } = false;
-
-        //[Category("Mod View")]
-        //[DisplayName("Applied Mod Icons")]
-        //[Description("Hide the applied mod icons in the Applied Mod list.")]
-        //[EbxFieldMeta(EbxFieldType.Boolean)]
-        //public bool AppliedModIcons { get; set; } = true;
+        [Category("Applying")]
+        [Description("The thread count that should be used when applying mods. By default is set to the number of processors on the machine")]
+        [EbxFieldMeta(EbxFieldType.Int32)]
+        public int ApplyingThreadCount { get; set; } = Environment.ProcessorCount;
 
         public override void Load()
         {
@@ -347,11 +349,9 @@ namespace Frosty.Core.Windows
             DeleteCollectionMods = Config.Get<bool>("DeleteCollectionMods", true);
 
             UpdateCheck = Config.Get<bool>("UpdateCheck", true);
-
             UpdateCheckPrerelease = Config.Get<bool>("UpdateCheckPrerelease", false);
 
-            //CollapseCategories = Config.Get("CollapseCategories", false);
-            //AppliedModIcons = Config.Get("AppliedModIcons", true);
+            ApplyingThreadCount = Config.Get<int>("ApplyingThreadCount", Environment.ProcessorCount);
         }
 
         public override void Save()
@@ -363,8 +363,7 @@ namespace Frosty.Core.Windows
             Config.Add("UpdateCheck", UpdateCheck);
             Config.Add("UpdateCheckPrerelease", UpdateCheckPrerelease);
 
-            //Config.Add("CollapseCategories", CollapseCategories);
-            //Config.Add("AppliedModIcons", AppliedModIcons);
+            Config.Add("ApplyingThreadCount", ApplyingThreadCount);
 
             if (RememberChoice)
                 Config.Add("DefaultProfile", ProfilesLibrary.ProfileName);
@@ -432,7 +431,6 @@ namespace Frosty.Core.Windows
                     optionData.Save();
 
                 Config.Save();
-                //Config.Save(App.configFilename);
 
                 Close();
             }
