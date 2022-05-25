@@ -344,12 +344,19 @@ namespace FrostyEditor.Windows
 
         private void UpdateWindowTitle()
         {
-            Title = "Frosty Editor - " + Frosty.Core.App.Version + " (" + ProfilesLibrary.DisplayName + ") ";
+            if (ProfilesLibrary.HasLoadedProfile)
+            {
+                Title = "Frosty Editor - " + Frosty.Core.App.Version + " (" + ProfilesLibrary.DisplayName + ") ";
 
-            if (ProfilesLibrary.EnableExecution)
-                Title += "[" + project.DisplayName + "]";
+                if (ProfilesLibrary.EnableExecution)
+                    Title += "[" + project.DisplayName + "]";
+                else
+                    Title += "[Read Only]";
+            }
             else
-                Title += "[Read Only]";
+            {
+                Title = "Frosty Editor - " + Frosty.Core.App.Version;
+            }
         }
 
         private void FrostyWindow_Loaded(object sender, EventArgs e)
@@ -514,10 +521,22 @@ namespace FrostyEditor.Windows
                 if (!string.IsNullOrEmpty(selectedProfileName))
                 {
                     SelectProfile(selectedProfileName);
+                    
+                    NewProject();
+                    
+                    // update UI
+                    LoadedPluginsList.ItemsSource = App.PluginManager.LoadedPlugins;
+
+                    LoadPluginExtensions();
+
+                    dataExplorer.ItemsSource = App.AssetManager.EnumerateEbx();
+                    legacyExplorer.ItemsSource = App.AssetManager.EnumerateCustomAssets("legacy");
                 }
             }
-
-            NewProject();
+            else
+            {
+                NewProject();
+            }
         }
 
         private static void SelectProfile(string profile)
