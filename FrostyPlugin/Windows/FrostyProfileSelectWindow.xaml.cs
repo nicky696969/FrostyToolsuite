@@ -23,6 +23,8 @@ namespace Frosty.Core.Windows
 
         private void ProfileSelectWindow_Loaded(object sender, RoutedEventArgs e)
         {
+            RefreshConfigurationList();
+            
             // TODO: @techdebt only call this once or when needed
             ScanGames();
 
@@ -196,6 +198,11 @@ namespace Frosty.Core.Windows
 
         private void ConfigurationListView_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            if (SelectGameTextBlock.IsVisible)
+            {
+                SelectGameTextBlock.Visibility = Visibility.Collapsed;
+            }
+            
             if (ConfigurationListView.SelectedItem is FrostyConfiguration configuration)
             {
                 ProfileNameTextBlock.Text = configuration.GameName;
