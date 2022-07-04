@@ -496,7 +496,7 @@ namespace Frosty.ModSupport
                                     entry.RangeStart = chunkEntry.RangeStart;
                                     entry.RangeEnd = chunkEntry.RangeEnd;
 
-                                    if (ProfilesLibrary.DataVersion == (int)ProfileVersion.StarWarsBattlefrontII)
+                                    if (ProfilesLibrary.DataVersion == (int)ProfileVersion.StarWarsBattlefrontII || ProfilesLibrary.DataVersion == (int)ProfileVersion.Battlefield5)
                                     {
                                         if (fs.GetManifestChunk(chunkEntry.Id) != null)
                                         {
@@ -568,7 +568,7 @@ namespace Frosty.ModSupport
                         }
                         else
                         {
-                            if (ProfilesLibrary.DataVersion == (int)ProfileVersion.StarWarsBattlefrontII)
+                            if (ProfilesLibrary.DataVersion == (int)ProfileVersion.StarWarsBattlefrontII || ProfilesLibrary.DataVersion == (int)ProfileVersion.Battlefield5)
                             {
                                 var chunkEntry = am.GetChunkEntry(guid);
                                 var entry = modifiedChunks[guid];
@@ -633,7 +633,7 @@ namespace Frosty.ModSupport
             if (ProfilesLibrary.DataVersion == (int)ProfileVersion.Fifa17 || ProfilesLibrary.DataVersion == (int)ProfileVersion.DragonAgeInquisition || ProfilesLibrary.DataVersion == (int)ProfileVersion.Battlefield4 || ProfilesLibrary.DataVersion == (int)ProfileVersion.NeedForSpeed || ProfilesLibrary.DataVersion == (int)ProfileVersion.PlantsVsZombiesGardenWarfare2 || ProfilesLibrary.DataVersion == (int)ProfileVersion.NeedForSpeedRivals)
                 patchPath = "Update\\Patch\\Data";
 #if FROSTY_DEVELOPER
-            else if (ProfilesLibrary.DataVersion == (int)ProfileVersion.PlantsVsZombiesBattleforNeighborville)
+            else if (ProfilesLibrary.DataVersion == (int)ProfileVersion.PlantsVsZombiesBattleforNeighborville || ProfilesLibrary.DataVersion == (int)ProfileVersion.Battlefield5)
                 patchPath = "Data";
 #endif
 
@@ -732,7 +732,7 @@ namespace Frosty.ModSupport
                 cancelToken.ThrowIfCancellationRequested();
                 Logger.Log("Initializing resources");
 
-                if (ProfilesLibrary.DataVersion == (int)ProfileVersion.StarWarsBattlefrontII)
+                if (ProfilesLibrary.DataVersion == (int)ProfileVersion.StarWarsBattlefrontII || ProfilesLibrary.DataVersion == (int)ProfileVersion.Battlefield5)
                 {
                     foreach (string catalogName in fs.Catalogs)
                     {
@@ -1519,11 +1519,28 @@ namespace Frosty.ModSupport
                         // create mod path
                         Directory.CreateDirectory(modPath);
 
-                        if (ProfilesLibrary.DataVersion == (int)ProfileVersion.StarWarsBattlefrontII || ProfilesLibrary.DataVersion == (int)ProfileVersion.Battlefield5)
+                        if (ProfilesLibrary.DataVersion == (int)ProfileVersion.StarWarsBattlefrontII)
                         {
                             if (!Directory.Exists(modPath + "Data"))
                                 Directory.CreateDirectory(modPath + "Data");
                             cmdArgs.Add(new SymLinkStruct(modPath + "Data/Win32", fs.BasePath + "Data/Win32", true));
+                        }
+                        if (ProfilesLibrary.DataVersion == (int)ProfileVersion.Battlefield5)
+                        {
+                            if (!Directory.Exists(modPath + "Data"))
+                                Directory.CreateDirectory(modPath + "Data");
+
+                            foreach (string casFilename in Directory.EnumerateFiles(fs.BasePath + patchPath, "*.cas", SearchOption.AllDirectories))
+                            {
+                                FileInfo casFi = new FileInfo(casFilename);
+                                string destPath = casFi.Directory.FullName.ToLower().Replace("\\" + patchPath.ToLower(), "\\" + modDirName.ToLower() + "\\" + patchPath.ToLower());
+                                string tempPath = Path.Combine(destPath, casFi.Name);
+
+                                if (!Directory.Exists(destPath))
+                                    Directory.CreateDirectory(destPath);
+
+                                cmdArgs.Add(new SymLinkStruct(tempPath, casFi.FullName, false));
+                            }
                         }
                         else
                         {
@@ -1578,6 +1595,10 @@ namespace Frosty.ModSupport
                 foreach (string catalog in fs.Catalogs)
                 {
                     string path = fs.ResolvePath("native_patch/" + catalog + "/cas.cat");
+                    if (ProfilesLibrary.DataVersion == (int)ProfileVersion.Battlefield5)
+                    {
+                        path = fs.ResolvePath("native_data/" + catalog + "/cas.cat");
+                    }
                     if (!File.Exists(path))
                         continue;
 
