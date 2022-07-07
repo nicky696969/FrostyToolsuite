@@ -171,10 +171,6 @@ namespace FrostySdk
         public string ResolvePath(ManifestFileRef fileRef)
         {
             string path = (fileRef.IsInPatch ? "native_patch/" : "native_data/") + catalogs[fileRef.CatalogIndex].Name + "/cas_" + fileRef.CasIndex.ToString("D2") + ".cas";
-            if (ProfilesLibrary.DataVersion == (int)ProfileVersion.Battlefield5)
-            {
-                path = "native_data/" + catalogs[fileRef.CatalogIndex].Name + "/cas_" + fileRef.CasIndex.ToString("D2") + ".cas";
-            }
             return ResolvePath(path);
         }
 
@@ -522,10 +518,6 @@ namespace FrostySdk
                 ChunkAssetEntry entry = new ChunkAssetEntry {Id = ci.guid};
 
                 string path = (fi.file.IsInPatch ? "native_patch/" : "native_data/") + catalogs[fi.file.CatalogIndex].Name + "/cas_" + fi.file.CasIndex.ToString("D2") + ".cas";
-                if (ProfilesLibrary.DataVersion == (int)ProfileVersion.Battlefield5)
-                {
-                    path = "native_data/" + catalogs[fi.file.CatalogIndex].Name + "/cas_" + fi.file.CasIndex.ToString("D2") + ".cas";
-                }
                 entry.Location = AssetDataLocation.CasNonIndexed;
                 entry.Size = fi.size;
 

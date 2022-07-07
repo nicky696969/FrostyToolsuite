@@ -2065,21 +2065,13 @@ namespace Frosty.ModSupport
                         archiveData.Add(sha1, new ArchiveInfo() { Data = tmpBuf });
                         WriteArchiveData(modPath + patchPath + "/" + catalog, new CasDataEntry("", sha1));
 
+                        manifest.SetValue("size", tmpBuf.Length);
+                        manifest.SetValue("offset", 0);
+                        manifest.SetValue("sha1", sha1);
                         if (ProfilesLibrary.DataVersion == (int)ProfileVersion.Battlefield5)
-                        {
-                            manifest.SetValue("size", tmpBuf.Length);
-                            manifest.SetValue("offset", 0);
-                            manifest.SetValue("sha1", sha1);
                             manifest.SetValue("file", (int)new ManifestFileRef(fileRef.CatalogIndex, false, casIndex));
-                        }
                         else
-                        {
-                            manifest.SetValue("size", tmpBuf.Length);
-                            manifest.SetValue("offset", 0);
-                            manifest.SetValue("sha1", sha1);
                             manifest.SetValue("file", (int)new ManifestFileRef(fileRef.CatalogIndex, true, casIndex));
-                        }
-
                     }
 
                     // add any new superbundles
