@@ -2065,10 +2065,21 @@ namespace Frosty.ModSupport
                         archiveData.Add(sha1, new ArchiveInfo() { Data = tmpBuf });
                         WriteArchiveData(modPath + patchPath + "/" + catalog, new CasDataEntry("", sha1));
 
-                        manifest.SetValue("size", tmpBuf.Length);
-                        manifest.SetValue("offset", 0);
-                        manifest.SetValue("sha1", sha1);
-                        manifest.SetValue("file", (int)new ManifestFileRef(fileRef.CatalogIndex, true, casIndex));
+                        if (ProfilesLibrary.DataVersion == (int)ProfileVersion.Battlefield5)
+                        {
+                            manifest.SetValue("size", tmpBuf.Length);
+                            manifest.SetValue("offset", 0);
+                            manifest.SetValue("sha1", sha1);
+                            manifest.SetValue("file", (int)new ManifestFileRef(fileRef.CatalogIndex, false, casIndex));
+                        }
+                        else
+                        {
+                            manifest.SetValue("size", tmpBuf.Length);
+                            manifest.SetValue("offset", 0);
+                            manifest.SetValue("sha1", sha1);
+                            manifest.SetValue("file", (int)new ManifestFileRef(fileRef.CatalogIndex, true, casIndex));
+                        }
+
                     }
 
                     // add any new superbundles
@@ -2244,7 +2255,14 @@ namespace Frosty.ModSupport
                         casEntry.FileInfo.offset = (uint)currentCasStream.Position;
                         casEntry.FileInfo.size = info.Data.Length;
                     }
-                    casEntry.FileInfo.file = new ManifestFileRef(casEntry.FileInfo.file.CatalogIndex, true, casIndex);
+                    if (ProfilesLibrary.DataVersion == (int)ProfileVersion.Battlefield5)
+                    {
+                        casEntry.FileInfo.file = new ManifestFileRef(casEntry.FileInfo.file.CatalogIndex, false, casIndex);
+                    }
+                    else
+                    {
+                        casEntry.FileInfo.file = new ManifestFileRef(casEntry.FileInfo.file.CatalogIndex, true, casIndex);
+                    }
                 }
 
                 currentCasStream.Write(info.Data, 0, info.Data.Length);

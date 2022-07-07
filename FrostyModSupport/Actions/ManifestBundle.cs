@@ -78,6 +78,10 @@ namespace Frosty.ModSupport
                                 ManifestFileInfo fi = manifestBundle.files[i];
 
                                 string catFile = fs.ResolvePath(((fi.file.IsInPatch) ? "native_patch/" : "native_data/") + fs.GetCatalog(fi.file) + "/cas.cat");
+                                if (ProfilesLibrary.DataVersion == (int)ProfileVersion.Battlefield5)
+                                {
+                                    catFile = fs.ResolvePath(("native_data/") + fs.GetCatalog(fi.file) + "/cas.cat");
+                                }
                                 int catFileHash = Fnv1.HashString(catFile.ToLower());
 
                                 Dictionary<uint, CatResourceEntry> casList = parent.resources[catFileHash][fi.file.CasIndex];
