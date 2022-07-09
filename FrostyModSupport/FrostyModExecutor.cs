@@ -632,10 +632,8 @@ namespace Frosty.ModSupport
             string patchPath = "Patch";
             if (ProfilesLibrary.DataVersion == (int)ProfileVersion.Fifa17 || ProfilesLibrary.DataVersion == (int)ProfileVersion.DragonAgeInquisition || ProfilesLibrary.DataVersion == (int)ProfileVersion.Battlefield4 || ProfilesLibrary.DataVersion == (int)ProfileVersion.NeedForSpeed || ProfilesLibrary.DataVersion == (int)ProfileVersion.PlantsVsZombiesGardenWarfare2 || ProfilesLibrary.DataVersion == (int)ProfileVersion.NeedForSpeedRivals)
                 patchPath = "Update\\Patch\\Data";
-#if FROSTY_DEVELOPER
-            else if (ProfilesLibrary.DataVersion == (int)ProfileVersion.PlantsVsZombiesBattleforNeighborville || ProfilesLibrary.DataVersion == (int)ProfileVersion.Battlefield5)
+            else if (ProfilesLibrary.DataVersion == (int)ProfileVersion.PlantsVsZombiesBattleforNeighborville || ProfilesLibrary.DataVersion == (int)ProfileVersion.Battlefield5) //bfn and bfv dont have a patch directory
                 patchPath = "Data";
-#endif
 
             if (ProfilesLibrary.DataVersion == (int)ProfileVersion.Madden20)
             {
@@ -1525,7 +1523,7 @@ namespace Frosty.ModSupport
                                 Directory.CreateDirectory(modPath + "Data");
                             cmdArgs.Add(new SymLinkStruct(modPath + "Data/Win32", fs.BasePath + "Data/Win32", true));
                         }
-                        if (ProfilesLibrary.DataVersion == (int)ProfileVersion.Battlefield5)
+                        if (ProfilesLibrary.DataVersion == (int)ProfileVersion.Battlefield5) //bfv doesnt have a patch directory so we need to rebuild the data folder structure instead
                         {
                             if (!Directory.Exists(modPath + "Data"))
                                 Directory.CreateDirectory(modPath + "Data");
@@ -1595,7 +1593,7 @@ namespace Frosty.ModSupport
                 foreach (string catalog in fs.Catalogs)
                 {
                     string path = fs.ResolvePath("native_patch/" + catalog + "/cas.cat");
-                    if (ProfilesLibrary.DataVersion == (int)ProfileVersion.Battlefield5)
+                    if (ProfilesLibrary.DataVersion == (int)ProfileVersion.Battlefield5) //again, no patch directory. fun.
                     {
                         path = fs.ResolvePath("native_data/" + catalog + "/cas.cat");
                     }
@@ -2068,7 +2066,7 @@ namespace Frosty.ModSupport
                         manifest.SetValue("size", tmpBuf.Length);
                         manifest.SetValue("offset", 0);
                         manifest.SetValue("sha1", sha1);
-                        if (ProfilesLibrary.DataVersion == (int)ProfileVersion.Battlefield5)
+                        if (ProfilesLibrary.DataVersion == (int)ProfileVersion.Battlefield5) //more patch directory shenanigans
                             manifest.SetValue("file", (int)new ManifestFileRef(fileRef.CatalogIndex, false, casIndex));
                         else
                             manifest.SetValue("file", (int)new ManifestFileRef(fileRef.CatalogIndex, true, casIndex));
