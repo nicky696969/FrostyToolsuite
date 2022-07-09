@@ -127,6 +127,7 @@ namespace Frosty.Core.Windows
 #endif
 
         [Category("Applying")]
+        [DisplayName("Applying Thread Count")]
         [Description("The thread count that should be used when applying mods. By default is set to the number of processors on the machine")]
         [EbxFieldMeta(EbxFieldType.Int32)]
         public int ApplyingThreadCount { get; set; } = Environment.ProcessorCount;
@@ -338,6 +339,7 @@ namespace Frosty.Core.Windows
 #endif
 
         [Category("Applying")]
+        [DisplayName("Applying Thread Count")]
         [Description("The thread count that should be used when applying mods. By default is set to the number of processors on the machine")]
         [EbxFieldMeta(EbxFieldType.Int32)]
         public int ApplyingThreadCount { get; set; } = Environment.ProcessorCount;
