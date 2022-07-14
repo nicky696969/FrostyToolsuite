@@ -16,6 +16,7 @@ using System.Windows.Data;
 using FrostySdk;
 using Microsoft.Win32;
 using System.Runtime.InteropServices;
+using System.Windows.Input;
 
 namespace Frosty.Core.Windows
 {
@@ -446,6 +447,13 @@ namespace Frosty.Core.Windows
                     return false;
             }
             return true;
+        }
+
+        protected override void OnKeyDown(KeyEventArgs e)
+        {
+            base.OnKeyDown(e);
+            if (e.Key == Key.F12)
+                System.Diagnostics.Process.Start(App.GlobalSettingsPath);
         }
     }
 }
