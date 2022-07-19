@@ -8,6 +8,7 @@ It is prohibited to redistribute this build.
 - Manage ModData window (1.0.7)
 - Duplicate and Rename Packs (1.0.7)
 - Applying Thread Count option to limit applying threads (1.0.7)
+- Fix RangeStart calculation for manifest chunks (1.0.7)
 - Fixes to BF1 mesh import (Upcoming 1.0.6)
 - Fix Mesh Naming in MeshSetPlugin (Upcoming 1.0.6)
 - UI changes
