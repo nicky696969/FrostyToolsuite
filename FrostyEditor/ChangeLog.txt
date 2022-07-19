@@ -1,4 +1,18 @@
-﻿v1.0.6
+﻿v1.0.6 (Dyvinia Build)
+--------
+NOTE: This is an UNOFFICIAL build of Frosty. If you use this, you are not allowed to ask for support. 
+It is prohibited to redistribute this build.
+--------
+- BFV mod support & SDK (by CosmicDreams & wannkunstbeikor) (1.0.7)
+- Association of .fbproject files (1.0.7)
+- Manage ModData window (1.0.7)
+- Duplicate and Rename Packs (1.0.7)
+- Applying Thread Count option to limit applying threads (1.0.7)
+- Fixes to BF1 mesh import (Upcoming 1.0.6)
+- Fix Mesh Naming in MeshSetPlugin (Upcoming 1.0.6)
+- UI changes
+
+v1.0.6
 --------
 - Added plugin support
 - Added Sound Import functionality

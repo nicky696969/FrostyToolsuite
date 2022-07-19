@@ -330,10 +330,10 @@
                                                     </TextBlock>
                                                 </StackPanel>
                                                 <StackPanel Orientation="Horizontal" Margin="8,8,0,0">
-                                                    <TextBlock Text="Frosty Support:" Foreground="{StaticResource FontColor}" Margin="0,0,20,0"/>
+                                                    <TextBlock Text="Support for this Build:" Foreground="{StaticResource FontColor}" Margin="0,0,20,0"/>
                                                     <TextBlock>
-                                                    <Hyperlink NavigateUri="https://discord.gg/sB8ZUAT" Foreground="{StaticResource FontColor}" RequestNavigate="hyperlink_RequestNavigate">
-                                                        https://discord.gg/sB8ZUAT
+                                                    <Hyperlink NavigateUri="https://discord.gg/Zr3kSt8dmg" Foreground="{StaticResource FontColor}" RequestNavigate="hyperlink_RequestNavigate">
+                                                        https://discord.gg/Zr3kSt8dmg
                                                     </Hyperlink>
                                                     </TextBlock>
                                                 </StackPanel>

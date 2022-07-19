@@ -73,12 +73,8 @@ namespace FrostyModManager
 
 #if FROSTY_DEVELOPER
             Version += " (Developer)";
-#elif FROSTY_ALPHA
-            Version += $" (ALPHA {Frosty.Core.App.Version})";
-#elif FROSTY_BETA
-            Version += $" (BETA {Frosty.Core.App.Version})";
-#elif FROSTY_GITHUB_RELEASE
-            Version += $" (Github Build {BuildDate})";
+#else
+            Version += $" (Dyvinia Build {BuildDate})";
 #endif
         }
 
