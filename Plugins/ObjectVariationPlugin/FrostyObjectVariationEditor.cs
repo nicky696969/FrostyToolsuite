@@ -26,7 +26,7 @@ namespace ObjectVariationPlugin
         private List<ShaderBlockDepot> shaderBlockDepots = new List<ShaderBlockDepot>();
         private List<MeshVariation> meshVariations = new List<MeshVariation>();
 
-        public FrostyObjectVariationEditor(ILogger inLogger) 
+        public FrostyObjectVariationEditor(ILogger inLogger)
             : base(inLogger)
         {
         }
@@ -129,6 +129,7 @@ namespace ObjectVariationPlugin
 
         private void FrostyObjectVariationEditor_Loaded(object sender, RoutedEventArgs e)
         {
+            MeshVariationDb.LoadModifiedVariations();
             if (firstTimeLoad)
             {
                 if (ProfilesLibrary.DataVersion == (int)ProfileVersion.StarWarsBattlefrontII)
@@ -146,6 +147,9 @@ namespace ObjectVariationPlugin
                     // store every unique mesh variation for this object variation
                     foreach (MeshVariation mvEntry in MeshVariationDb.FindVariations(ebxData.NameHash))
                         meshVariations.Add(mvEntry);
+
+                    if (meshVariations.Count == 0)
+                        return;
 
                     foreach (dynamic obj in RootObjects)
                     {

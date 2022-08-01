@@ -30,6 +30,7 @@ namespace FrostySdk.Managers
         Dx11ShaderProgramDatabase = 0xF04F0C81,
         RenderTexture = 0x41D57E10,
         UITtfFontFile = 0x9D00966A,
+        RimeTtfFontFile = 0x063994C5,
         AssetBank = 0x51A3C853,
         IesResource = 0x0DEAFE10,
         MorphResource = 0xEB228507,
@@ -380,9 +381,9 @@ namespace FrostySdk.Managers
         public override string AssetType => "res";
 
         //#if FROSTY_DEVELOPER
-//        // @tmp
-//        public override string DisplayName => ("(" + (OriginalSize / 1024.0d).ToString("F2") + "kb) ".PadRight(6) + Filename) + ((IsDirty) ? "*" : "");
-//#endif
+        //        // @tmp
+        //        public override string DisplayName => ("(" + (OriginalSize / 1024.0d).ToString("F2") + "kb) ".PadRight(6) + Filename) + ((IsDirty) ? "*" : "");
+        //#endif
 
         public ulong ResRid;
         public uint ResType;
@@ -993,6 +994,7 @@ namespace FrostySdk.Managers
                 buffer = writer.ToByteArray();
             }
 
+            entry.AddedBundles.AddRange(bundles);
             entry.ModifiedEntry.DataObject = asset;
             entry.ModifiedEntry.OriginalSize = 0;
             entry.ModifiedEntry.Sha1 = Sha1.Zero;
@@ -1028,6 +1030,7 @@ namespace FrostySdk.Managers
             while (resRidList.ContainsKey(entry.ResRid))
                 entry.ResRid = Utils.GenerateResourceId();
 
+            entry.AddedBundles.AddRange(bundles);
             entry.ModifiedEntry = new ModifiedAssetEntry
             {
                 Data = Utils.CompressFile(buffer),
@@ -1049,7 +1052,7 @@ namespace FrostySdk.Managers
         /// </summary>
         public Guid AddChunk(byte[] buffer, Guid? overrideGuid = null, Texture texture = null, params int[] bundles)
         {
-            ChunkAssetEntry entry = new ChunkAssetEntry {IsAdded = true, IsDirty = true};
+            ChunkAssetEntry entry = new ChunkAssetEntry { IsAdded = true, IsDirty = true };
             CompressionType compressType = (ProfilesLibrary.DataVersion == (int)ProfileVersion.Fifa18) ? CompressionType.Oodle : CompressionType.Default;
 
             entry.ModifiedEntry = new ModifiedAssetEntry
@@ -1154,7 +1157,7 @@ namespace FrostySdk.Managers
                 return;
 
             object modifiedResource = resource.SaveModifiedResource();
-            if (modifiedResource != null)
+            if (modifiedResource != null && !resRidList[resRid].IsAdded)
             {
                 ResAssetEntry entry = resRidList[resRid];
                 if (entry.ModifiedEntry == null)
@@ -1199,7 +1202,7 @@ namespace FrostySdk.Managers
                 return;
 
             object modifiedResource = resource.SaveModifiedResource();
-            if (modifiedResource != null)
+            if (modifiedResource != null && !resList[resName].IsAdded)
             {
                 ResAssetEntry entry = resList[resName];
                 if (entry.ModifiedEntry == null)
@@ -1424,31 +1427,31 @@ namespace FrostySdk.Managers
         #endregion
 
         #region -- Get Functions --
-        public int GetSuperBundleId(SuperBundleEntry sbentry) 
+        public int GetSuperBundleId(SuperBundleEntry sbentry)
             => superBundles.FindIndex((SuperBundleEntry sbe) => sbe.Name.Equals(sbentry.Name));
 
-        public int GetSuperBundleId(string sbname) 
+        public int GetSuperBundleId(string sbname)
             => superBundles.FindIndex((SuperBundleEntry sbe) => sbe.Name.Equals(sbname, StringComparison.OrdinalIgnoreCase));
 
-        public SuperBundleEntry GetSuperBundle(int id) 
+        public SuperBundleEntry GetSuperBundle(int id)
             => id >= superBundles.Count ? null : superBundles[id];
 
-        public int GetBundleId(BundleEntry bentry) 
+        public int GetBundleId(BundleEntry bentry)
             => bundles.FindIndex((BundleEntry be) => be.Name.Equals(bentry.Name));
 
-        public int GetBundleId(string name) 
+        public int GetBundleId(string name)
             => bundles.FindIndex((BundleEntry be) => be.Name.Equals(name));
 
-        public BundleEntry GetBundleEntry(int bundleId) 
+        public BundleEntry GetBundleEntry(int bundleId)
             => bundleId >= bundles.Count ? null : bundles[bundleId];
 
-        public AssetEntry GetCustomAssetEntry(string type, string key) 
+        public AssetEntry GetCustomAssetEntry(string type, string key)
             => !customAssetManagers.ContainsKey(type) ? null : customAssetManagers[type].GetAssetEntry(key);
 
-        public T GetCustomAssetEntry<T>(string type, string key) where T : AssetEntry 
+        public T GetCustomAssetEntry<T>(string type, string key) where T : AssetEntry
             => (T)GetCustomAssetEntry(type, key);
 
-        public EbxAssetEntry GetEbxEntry(Guid ebxGuid) 
+        public EbxAssetEntry GetEbxEntry(Guid ebxGuid)
             => !ebxGuidList.ContainsKey(ebxGuid) ? null : ebxGuidList[ebxGuid];
 
         public EbxAsset GetEbx(string name, bool getUnmodifiedData = false) => GetEbx(GetEbxEntry(name), getUnmodifiedData);
@@ -1813,7 +1816,7 @@ namespace FrostySdk.Managers
             {
                 entry.Location = AssetDataLocation.Cache;
 
-                entry.ExtraData = new AssetExtraData {DataOffset = 0xdeadbeef};
+                entry.ExtraData = new AssetExtraData { DataOffset = 0xdeadbeef };
             }
             else if (ebx.GetValue<int>("casPatchType") == 2)
             {
@@ -1891,7 +1894,7 @@ namespace FrostySdk.Managers
             {
                 entry.Location = AssetDataLocation.Cache;
 
-                entry.ExtraData = new AssetExtraData {DataOffset = 0xdeadbeef};
+                entry.ExtraData = new AssetExtraData { DataOffset = 0xdeadbeef };
             }
             else if (res.GetValue<int>("casPatchType") == 2)
             {
@@ -1960,7 +1963,7 @@ namespace FrostySdk.Managers
             {
                 entry.Location = AssetDataLocation.Cache;
 
-                entry.ExtraData = new AssetExtraData {DataOffset = 0xdeadbeef};
+                entry.ExtraData = new AssetExtraData { DataOffset = 0xdeadbeef };
             }
 
             chunkList.Add(chunkId, entry);
@@ -2002,7 +2005,7 @@ namespace FrostySdk.Managers
                 if (head != fs.Head)
                 {
                     bIsPatched = true;
-                    prePatchCache = new List<EbxAssetEntry>();  
+                    prePatchCache = new List<EbxAssetEntry>();
                 }
 
                 int count = reader.ReadInt();
@@ -2016,7 +2019,7 @@ namespace FrostySdk.Managers
                 {
                     for (int i = 0; i < count; i++)
                     {
-                        SuperBundleEntry sbentry = new SuperBundleEntry {Name = reader.ReadNullTerminatedString()};
+                        SuperBundleEntry sbentry = new SuperBundleEntry { Name = reader.ReadNullTerminatedString() };
                         superBundles.Add(sbentry);
                     }
                 }
@@ -2038,7 +2041,7 @@ namespace FrostySdk.Managers
                     if (bentry.Name.StartsWith("win32/Win32"))
                         bentry.Name = bentry.Name.Remove(0, 6);
 
-                    if(!bIsPatched)
+                    if (!bIsPatched)
                         bundles.Add(bentry);
                 }
 
@@ -2199,7 +2202,7 @@ namespace FrostySdk.Managers
                     for (int j = 0; j < subCount; j++)
                         entry.Bundles.Add(reader.ReadInt());
 
-                    if(!bIsPatched)
+                    if (!bIsPatched)
                         chunkList.Add(entry.Id, entry);
                 }
             }
