@@ -117,10 +117,13 @@ namespace DuplicationPlugin
             // Duplicate the lod chunks
             foreach (var lod in newMeshSet.Lods)
             {
-                ChunkAssetEntry lodChunk = App.AssetManager.GetChunkEntry(lod.ChunkId);
-                lod.ChunkId = DuplicateChunk(lodChunk);
                 lod.Name = newName.ToLower();
-                newResEntry.LinkAsset(App.AssetManager.GetChunkEntry(lod.ChunkId));
+                if (lod.ChunkId != Guid.Empty)
+                {
+                    ChunkAssetEntry lodChunk = App.AssetManager.GetChunkEntry(lod.ChunkId);
+                    lod.ChunkId = DuplicateChunk(lodChunk);
+                    newResEntry.LinkAsset(App.AssetManager.GetChunkEntry(lod.ChunkId));
+                }
             }
 
             // Update the ebx

@@ -23,7 +23,7 @@ using System.Windows;
 [assembly: Guid("4b612468-9b6a-4304-88a5-055c3575eb3d")]
 
 [assembly: PluginDisplayName("Asset Duplication")]
-[assembly: PluginAuthor("Cade")]
-[assembly: PluginVersion("1.0.0.0")]
+[assembly: PluginAuthor("Cade & wannkunstbeikor")]
+[assembly: PluginVersion("1.0.0.1")]
 
 [assembly: RegisterDataExplorerContextMenu(typeof(DuplicateContextMenuItem))]

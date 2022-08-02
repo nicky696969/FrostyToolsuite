@@ -579,7 +579,7 @@ namespace MeshSetPlugin.Resources
                             writer.Write(f[1]);
                             writer.Write(f[2]);
                             writer.Write(f[3]);
-                            Value = writer.ToByteArray(); ;
+                            Value = writer.ToByteArray();
                         }
                     }
                     break;
