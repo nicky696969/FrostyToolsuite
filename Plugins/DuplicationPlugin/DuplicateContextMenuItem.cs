@@ -133,6 +133,23 @@ namespace DuplicationPlugin
 
             if (ProfilesLibrary.DataVersion == (int)ProfileVersion.StarWarsBattlefrontII)
             {
+                // Load in texture parameters
+                if (!entry.IsDirectlyModified)
+                {
+                    MeshVariationDb.LoadModifiedVariations();
+                    MeshVariation mvdbVariation = MeshVariationDb.GetVariations(entry.Guid).Variations[0];
+                    for (int i = 0; i < newRoot.Materials.Count; i++)
+                    {
+                        dynamic material = newRoot.Materials[i].Internal;
+                        if (material.Shader.TextureParameters.Count == 0)
+                        {
+                            dynamic textureParams = mvdbVariation.Materials[i].TextureParameters;
+                            foreach (dynamic param in textureParams)
+                                material.Shader.TextureParameters.Add(param);
+                        }
+                    }
+                }
+
                 // Duplicate the sbd
                 ResAssetEntry oldShaderBlock = App.AssetManager.GetResEntry(entry.Name.ToLower() + "_mesh/blocks");
                 ResAssetEntry newShaderBlock = DuplicateRes(oldShaderBlock, newName.ToLower() + "_mesh/blocks", ResourceType.ShaderBlockDepot);
@@ -193,6 +210,40 @@ namespace DuplicationPlugin
                 dynamic meshRoot = meshAsset.RootObject;
                 ResAssetEntry meshRes = App.AssetManager.GetResEntry(meshRoot.MeshSetResource);
                 MeshSet meshSet = App.AssetManager.GetResAs<MeshSet>(meshRes);
+
+                // Load in texture parameters
+                if (!entry.IsDirectlyModified)
+                {
+                    foreach (dynamic rootMaterial in newAsset.RootObjects)
+                    {
+                        Type objType = rootMaterial.GetType();
+                        if (TypeLibrary.IsSubClassOf(objType, "MeshMaterialVariation"))
+                        {
+
+                            if (rootMaterial.Shader.TextureParameters.Count == 0)
+                            {
+                                AssetClassGuid guid = rootMaterial.GetInstanceGuid();
+                                MeshVariationMaterial mm = null;
+
+                                foreach (MeshVariationMaterial mvm in mv.Materials)
+                                {
+                                    if (mvm.MaterialVariationClassGuid == guid.ExportedGuid)
+                                    {
+                                        mm = mvm;
+                                        break;
+                                    }
+                                }
+
+                                if (mm != null)
+                                {
+                                    dynamic texParams = mm.TextureParameters;
+                                    foreach (dynamic param in texParams)
+                                        rootMaterial.Shader.TextureParameters.Add(param);
+                                }
+                            }
+                        }
+                    }
+                }
 
                 // Dupe sbd
                 ResAssetEntry resEntry = App.AssetManager.GetResEntry(entry.Name.ToLower() + "/" + meshEntry.Filename + "_" + (uint)Utils.HashString(meshEntry.Name, true) + "/shaderblocks_variation/blocks");
