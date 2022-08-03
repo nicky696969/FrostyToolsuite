@@ -31,11 +31,19 @@
 
             <StackPanel Grid.Row="0">
                 <DockPanel Margin="5" LastChildFill="True">
-                    <Label Content="Name" FontFamily="Global User Interface" Width="50"/>
+                    <Label Content="Name" FontFamily="Global User Interface" Width="90"/>
                     <TextBox x:Name="assetNameTextBox" Padding="4" FontFamily="Global User Interface" BorderThickness="1" TextChanged="AssetNameTextBox_TextChanged"/>
                 </DockPanel>
                 <DockPanel Margin="5,0,5,5" LastChildFill="True">
-                    <Label Content="Type" FontFamily="Global User Interface" Width="50"/>
+                    <Label Content="File GUID" FontFamily="Global User Interface" Width="90"/>
+                    <TextBox x:Name="assetFileGuidTextBox" Padding="4" FontFamily="Global User Interface" BorderThickness="1" LostFocus="AssetGuidTextBox_LostFocus"/>
+                </DockPanel>
+                <DockPanel Margin="5,0,5,5" LastChildFill="True">
+                    <Label Content="Instance GUID" FontFamily="Global User Interface" Width="90"/>
+                    <TextBox x:Name="assetInstanceGuidTextBox" Padding="4" FontFamily="Global User Interface" BorderThickness="1" LostFocus="AssetGuidTextBox_LostFocus"/>
+                </DockPanel>
+                <DockPanel Margin="5,0,5,5" LastChildFill="True">
+                    <Label Content="Type" FontFamily="Global User Interface" Width="90"/>
                     <TextBox x:Name="assetTypeTextBox" Padding="4" FontFamily="Global User Interface" IsEnabled="False" BorderThickness="1" TextChanged="AssetNameTextBox_TextChanged"/>
                 </DockPanel>
             </StackPanel>
