@@ -1454,6 +1454,7 @@ namespace MeshSetPlugin.Resources
             }
         }
         public string Name => name;
+        public uint NameHash { get => nameHash; set => nameHash = value; }
         public int HeaderSize => BitConverter.ToUInt16(resMeta, 0x0c);
 
         public int MaxLodCount
@@ -1545,7 +1546,7 @@ namespace MeshSetPlugin.Resources
             flags = (MeshLayoutFlags)reader.ReadUInt();
 
             // unknown block
-            if (ProfilesLibrary.DataVersion != (int)ProfileVersion.Fifa17 || ProfilesLibrary.DataVersion != (int)ProfileVersion.MassEffectAndromeda || ProfilesLibrary.DataVersion != (int)ProfileVersion.NeedForSpeedEdge || ProfilesLibrary.DataVersion != (int)ProfileVersion.NeedForSpeedRivals || ProfilesLibrary.DataVersion != (int)ProfileVersion.DragonAgeInquisition || ProfilesLibrary.DataVersion != (int)ProfileVersion.Battlefield4 || ProfilesLibrary.DataVersion != (int)ProfileVersion.PlantsVsZombiesGardenWarfare || ProfilesLibrary.DataVersion != (int)ProfileVersion.PlantsVsZombiesGardenWarfare2 || ProfilesLibrary.DataVersion != (int)ProfileVersion.NeedForSpeed)
+            if (ProfilesLibrary.DataVersion != (int)ProfileVersion.Fifa17 && ProfilesLibrary.DataVersion != (int)ProfileVersion.MassEffectAndromeda && ProfilesLibrary.DataVersion != (int)ProfileVersion.NeedForSpeedEdge && ProfilesLibrary.DataVersion != (int)ProfileVersion.NeedForSpeedRivals && ProfilesLibrary.DataVersion != (int)ProfileVersion.DragonAgeInquisition && ProfilesLibrary.DataVersion != (int)ProfileVersion.Battlefield4 && ProfilesLibrary.DataVersion != (int)ProfileVersion.PlantsVsZombiesGardenWarfare && ProfilesLibrary.DataVersion != (int)ProfileVersion.PlantsVsZombiesGardenWarfare2 && ProfilesLibrary.DataVersion != (int)ProfileVersion.NeedForSpeed)
             {
                 for (int i = 0; i < 5; i++)
                     unknownUInts.Add(reader.ReadUInt()); // 0s
@@ -1861,7 +1862,8 @@ namespace MeshSetPlugin.Resources
 
             writer.WritePadding(16);
 
-            writer.Write(unknownbfv);
+            if (ProfilesLibrary.DataVersion == (int)ProfileVersion.Battlefield5)
+                writer.Write(unknownbfv);
 
             Debug.Assert(writer.Position == HeaderSize);
 

@@ -119,9 +119,9 @@ namespace Frosty.Core.Viewport
         public static Dictionary<Guid, MeshVariationDbEntry> Entries { get => entries; set { entries = value; } }
 
         private static Dictionary<Guid, MeshVariationDbEntry> entries = new Dictionary<Guid, MeshVariationDbEntry>();
-        public static Dictionary<Guid, MeshVariationDbEntry> ModifiedEntries { get => modifiedentries; set { modifiedentries = value; } }
+        public static Dictionary<Guid, MeshVariationDbEntry> ModifiedEntries { get => modifiedEntries; set { modifiedEntries = value; } }
 
-        private static Dictionary<Guid, MeshVariationDbEntry> modifiedentries = new Dictionary<Guid, MeshVariationDbEntry>();
+        private static Dictionary<Guid, MeshVariationDbEntry> modifiedEntries = new Dictionary<Guid, MeshVariationDbEntry>();
 
         public static void LoadVariations(FrostyTaskWindow task)
         {
@@ -198,7 +198,7 @@ namespace Frosty.Core.Viewport
                             entries.Add(guid, mvEntry);
                         }
                     }
-                    
+
                 }
             }
             if (generateMVDB)
@@ -293,9 +293,9 @@ namespace Frosty.Core.Viewport
                 return;
             }
 
-            modifiedentries.Clear();
+            modifiedEntries.Clear();
 
-            foreach (EbxAssetEntry ebx in App.AssetManager.EnumerateEbx("MeshVariationDatabase").ToList().Where(o => o.IsModified == true))
+            foreach (EbxAssetEntry ebx in App.AssetManager.EnumerateEbx("MeshVariationDatabase", true))
             {
                 App.Logger.Log(ebx.Name);
                 EbxAsset asset = App.AssetManager.GetEbx(ebx);
@@ -308,9 +308,9 @@ namespace Frosty.Core.Viewport
                         try
                         {
                             Guid meshGuid = ((PointerRef)v.Mesh).External.FileGuid;
-                            if (!modifiedentries.ContainsKey(meshGuid))
-                                modifiedentries.Add(meshGuid, new MeshVariationDbEntry(meshGuid));
-                            modifiedentries[meshGuid].Add(ebx.Guid, asset.RootInstanceGuid, j, v);
+                            if (!modifiedEntries.ContainsKey(meshGuid))
+                                modifiedEntries.Add(meshGuid, new MeshVariationDbEntry(meshGuid));
+                            modifiedEntries[meshGuid].Add(ebx.Guid, asset.RootInstanceGuid, j, v);
                         }
                         catch (Exception ex)
                         {
@@ -326,18 +326,18 @@ namespace Frosty.Core.Viewport
 
         public static MeshVariationDbEntry GetVariations(Guid meshGuid)
         {
-            if ((entries.Count == 0 & modifiedentries.Count == 0) || (!entries.ContainsKey(meshGuid) & !modifiedentries.ContainsKey(meshGuid)))
+            if ((entries.Count == 0 & modifiedEntries.Count == 0) || (!entries.ContainsKey(meshGuid) & !modifiedEntries.ContainsKey(meshGuid)))
                 return null;
-            if (!modifiedentries.ContainsKey(meshGuid))
+            if (!modifiedEntries.ContainsKey(meshGuid))
                 return entries[meshGuid];
             else
             {
-                MeshVariationDbEntry modifiedDBEntry = modifiedentries[meshGuid];
+                MeshVariationDbEntry modifiedDBEntry = modifiedEntries[meshGuid];
                 if (!entries.ContainsKey(meshGuid))
                     return modifiedDBEntry;
 
                 MeshVariationDbEntry originalDBEntry = entries[meshGuid];
-                foreach(uint key in originalDBEntry.Variations.Keys)
+                foreach (uint key in originalDBEntry.Variations.Keys)
                 {
                     if (!modifiedDBEntry.Variations.ContainsKey(key))
                         modifiedDBEntry.Variations.Add(key, originalDBEntry.Variations[key]);
@@ -354,6 +354,11 @@ namespace Frosty.Core.Viewport
 
         public static IEnumerable<MeshVariation> FindVariations(uint hash)
         {
+            foreach (MeshVariationDbEntry entry in modifiedEntries.Values)
+            {
+                if (entry.ContainsVariation(hash))
+                    yield return entry.GetVariation(hash);
+            }
             foreach (MeshVariationDbEntry entry in entries.Values)
             {
                 if (entry.ContainsVariation(hash))

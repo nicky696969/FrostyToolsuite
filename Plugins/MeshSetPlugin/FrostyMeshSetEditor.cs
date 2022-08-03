@@ -1558,7 +1558,7 @@ namespace MeshSetPlugin
             logger = inLogger;
         }
 
-        public void ImportFBX(string filename, MeshSet inMeshSet, EbxAsset asset, EbxAssetEntry entry, FrostyMeshImportSettings inSettings)
+        public void ImportFBX(string filename, MeshSet inMeshSet, EbxAsset asset, EbxAssetEntry entry, FrostyMeshImportSettings inSettings, List<ShaderBlockDepot> inShaderBlockDepots)
         {
             ulong resRid = ((dynamic)asset.RootObject).MeshSetResource;
             resEntry = App.AssetManager.GetResEntry(resRid);
@@ -1567,19 +1567,7 @@ namespace MeshSetPlugin
             meshSet = inMeshSet;
             resStream = App.AssetManager.GetRes(resEntry);
 
-            shaderBlockDepots = new List<ShaderBlockDepot>();
-            if (ProfilesLibrary.DataVersion == (int)ProfileVersion.StarWarsBattlefrontII)
-            {
-                // collect every shader block depot that is used by this mesh
-                string path = "/" + entry.Filename.ToLower();
-                foreach (ResAssetEntry sbeEntry in App.AssetManager.EnumerateRes(resType: (uint)ResourceType.ShaderBlockDepot))
-                {
-                    if (sbeEntry.Name.Contains(path))
-                    {
-                        shaderBlockDepots.Add(App.AssetManager.GetResAs<ShaderBlockDepot>(sbeEntry));
-                    }
-                }
-            }
+            shaderBlockDepots = inShaderBlockDepots;
 
             if (meshSet.Type != MeshType.MeshType_Rigid && meshSet.Type != MeshType.MeshType_Skinned)
                 throw new FBXImportInvalidMeshTypeException();
@@ -3151,7 +3139,10 @@ namespace MeshSetPlugin
                         ulong resRid = ((dynamic)RootObject).MeshSetResource;
                         ResAssetEntry resEntry = App.AssetManager.GetResEntry(resRid);
 
+                        ResAssetEntry sbdEntry = App.AssetManager.GetResEntry(sbd.ResourceId);
+
                         App.AssetManager.ModifyRes(sbd.ResourceId, sbd);
+                        resEntry.LinkAsset(sbdEntry);
                         AssetEntry.LinkAsset(resEntry);
                     }
                 }
@@ -4104,7 +4095,7 @@ namespace MeshSetPlugin
                             {
                                 // import
                                 FBXImporter importer = new FBXImporter(logger);
-                                importer.ImportFBX(ofd.FileName, meshSet, localAsset, localEntry, settings);
+                                importer.ImportFBX(ofd.FileName, meshSet, localAsset, localEntry, settings, shaderBlockDepots);
                             }
                             catch (Exception exp)
                             {
