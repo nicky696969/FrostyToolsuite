@@ -768,8 +768,11 @@ namespace MeshSetPlugin.Resources
                     // update the res meta
                     fixed (byte* ptr = &resMeta[0])
                     {
-                        *(ushort*)(ptr + 0) = 0x000A; // maybe version number
-                        *(ushort*)(ptr + 0) = 0x5B06; // always the same
+
+                        if (*(ushort*)(ptr + 0) != 0x000A)
+                            throw new Exception("version number");// maybe version number
+                        if (*(ushort*)(ptr + 2) != 0x5B06)
+                            throw new Exception("unk");
                         *(uint*)(ptr + 4) = (uint)writer.Length;
                         *(uint*)(ptr + 8) = (uint)(relocTable.Count * 4);
                         *(uint*)(ptr + 12) = (uint)sbResources.Count;
@@ -822,8 +825,6 @@ namespace MeshSetPlugin.Resources
 
         internal void AddResource(ulong hash, ShaderBlockResource resource)
         {
-            string type = resource.GetType().Name;
-            hash ^= Fnv1.HashString64(type);
             int index = hashes.IndexOf(hash);
             if (index == -1)
             {
@@ -898,8 +899,7 @@ namespace MeshSetPlugin.Resources
             {
                 reader.Position = offsets[i];
                 resources[i].Read(reader, null);
-                string type = resources[i].GetType().Name;
-                hashes.Add(resources[i].Hash ^ Fnv1.HashString64(type));
+                hashes.Add(resources[i].Hash);
             }
         }
     }
