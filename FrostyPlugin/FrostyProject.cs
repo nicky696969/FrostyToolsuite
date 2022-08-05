@@ -36,11 +36,7 @@ namespace Frosty.Core
             14 - Can duplicate blueprint bundles
         */
 
-#if FROSTY_DEVELOPER_ADDTOBUNDLE
         private const uint FormatVersion = 14;
-#else
-        private const uint FormatVersion = 13;
-#endif
         private const ulong Magic = 0x00005954534F5246;
 
         public string DisplayName
@@ -54,8 +50,8 @@ namespace Frosty.Core
                 return fi.Name;
             }
         }
-        public string Filename 
-        { 
+        public string Filename
+        {
             get => filename;
             set => filename = value;
         }
@@ -185,6 +181,11 @@ namespace Frosty.Core
                         writer.WriteNullTerminatedString(entry.Name);
                         writer.WriteNullTerminatedString(App.AssetManager.GetSuperBundle(entry.SuperBundleId).Name);
                         writer.Write((int)entry.Type);
+                        writer.Write(entry.Blueprint != null);
+                        if (entry.Blueprint != null)
+                        {
+                            writer.Write(entry.Blueprint.Guid);
+                        }
                         count++;
                     }
                 }
@@ -600,7 +601,7 @@ namespace Frosty.Core
                 // only load project if it's using the same profile as the one loaded
                 if (gameProfile.ToLower() != ProfilesLibrary.ProfileName.ToLower())
                     return false;
-                
+
                 // if it is the same project, reset and revert all of the current assets
                 App.AssetManager.Reset();
             }
@@ -643,12 +644,22 @@ namespace Frosty.Core
 
                 // bundles
                 numItems = reader.ReadInt();
+
+                Dictionary<string, Guid> newBundleBlueprints = new Dictionary<string, Guid>();
                 for (int i = 0; i < numItems; i++)
                 {
                     string name = reader.ReadNullTerminatedString();
                     string sbName = reader.ReadNullTerminatedString();
                     BundleType type = (BundleType)reader.ReadInt();
-
+                    if (version >= 14)
+                    {
+                        //Reading the blueprint of the new bundle
+                        if (reader.ReadBoolean() == true)
+                        {
+                            //Saving the guid to a dictionary because new assets haven't yet been added to the asset manager
+                            newBundleBlueprints.Add(name, reader.ReadGuid());
+                        }
+                    }
                     App.AssetManager.AddBundle(name, type, App.AssetManager.GetSuperBundleId(sbName));
                 }
 
@@ -688,6 +699,16 @@ namespace Frosty.Core
                         H32 = reader.ReadInt()
                     };
                     App.AssetManager.AddChunk(newEntry);
+                }
+
+                //Adding blueprint references to new/modified bundles
+                foreach (string bunName in newBundleBlueprints.Keys)
+                {
+                    BundleEntry bEntry = App.AssetManager.GetBundleEntry(App.AssetManager.GetBundleId(bunName));
+                    EbxAssetEntry blueprintEntry = App.AssetManager.GetEbxEntry(newBundleBlueprints[bunName]);
+                    if (bEntry == null || blueprintEntry == null)
+                        continue;
+                    bEntry.Blueprint = blueprintEntry;
                 }
 
                 // -----------------------------------------------------------------------------
@@ -1113,7 +1134,7 @@ namespace Frosty.Core
                 {
                     if (chunk.GetValue<bool>("added"))
                     {
-                        ChunkAssetEntry newEntry = new ChunkAssetEntry {Id = chunk.GetValue<Guid>("id")};
+                        ChunkAssetEntry newEntry = new ChunkAssetEntry { Id = chunk.GetValue<Guid>("id") };
                         App.AssetManager.AddChunk(newEntry);
                     }
                 }
