@@ -165,6 +165,15 @@ namespace MeshSetPlugin.Resources
             writer.Write(Hash);
             relocTable.Add((int)writer.Position);
         }
+
+        public virtual void ChangeHash(uint value)
+        {
+            Hash ^= value;
+        }
+
+        public virtual void CalculateHash()
+        {
+        }
     }
 
     public class ShaderStaticParamDbBlock : ShaderBlockResource
@@ -202,6 +211,25 @@ namespace MeshSetPlugin.Resources
 
             writer.Write(offset);
             writer.Write((long)Resources.Count);
+        }
+
+        //public override void ChangeHash(uint value)
+        //{
+        //    base.ChangeHash(value);
+        //    foreach (var res in Resources)
+        //        res.ChangeHash(value);
+        //}
+
+        public void ChangeHash(uint value, bool mesh = true)
+        {
+            base.ChangeHash(value);
+            foreach (var res in Resources)
+            {
+                if (res is ShaderStaticParamDbBlock staticBlock)
+                    staticBlock.ChangeHash(value, mesh);
+                else if (mesh || !(res is MeshParamDbBlock))
+                    res.ChangeHash(value);
+            }
         }
     }
 
@@ -492,7 +520,7 @@ namespace MeshSetPlugin.Resources
         public ushort Used;
         public byte[] Value;
 
-        private ulong parameterHash;
+        public ulong parameterHash;
 
         public ParameterEntry(string name, object value)
         {
@@ -768,8 +796,11 @@ namespace MeshSetPlugin.Resources
                     // update the res meta
                     fixed (byte* ptr = &resMeta[0])
                     {
-                        *(ushort*)(ptr + 0) = 0x000A; // maybe version number
-                        *(ushort*)(ptr + 0) = 0x5B06; // always the same
+
+                        if (*(ushort*)(ptr + 0) != 0x000A)
+                            throw new Exception("version number");// maybe version number
+                        if (*(ushort*)(ptr + 2) != 0x5B06)
+                            throw new Exception("unk");
                         *(uint*)(ptr + 4) = (uint)writer.Length;
                         *(uint*)(ptr + 8) = (uint)(relocTable.Count * 4);
                         *(uint*)(ptr + 12) = (uint)sbResources.Count;
@@ -822,8 +853,6 @@ namespace MeshSetPlugin.Resources
 
         internal void AddResource(ulong hash, ShaderBlockResource resource)
         {
-            string type = resource.GetType().Name;
-            hash ^= Fnv1.HashString64(type);
             int index = hashes.IndexOf(hash);
             if (index == -1)
             {
@@ -898,9 +927,588 @@ namespace MeshSetPlugin.Resources
             {
                 reader.Position = offsets[i];
                 resources[i].Read(reader, null);
-                string type = resources[i].GetType().Name;
-                hashes.Add(resources[i].Hash ^ Fnv1.HashString64(type));
+                hashes.Add(resources[i].Hash);
             }
+        }
+    }
+}
+
+namespace MeshSetPlugin.Resources.New
+{
+    #region Enums
+    public enum RvmLevelOfDetail
+    {
+        RvmLevelOfDetail_Low = 0,
+        RvmLevelOfDetail_High = 1
+    }
+
+    public enum ShaderInstancingMethod
+    {
+        ShaderInstancingMethod_None = 0,
+        ShaderInstancingMethod_ObjectTransform4x3Half = 1,
+        ShaderInstancingMethod_ObjectTransform4x3InstanceData4x1Half = 2,
+        ShaderInstancingMethod_ObjectTransform4x3InstanceData4x2Half = 3,
+        ShaderInstancingMethod_WorldTransform4x3Float = 4,
+        ShaderInstancingMethod_WorldTransform4x3FloatInstanceData4x2Half = 5,
+        ShaderInstancingMethod_PrevWorldTransform4x3FloatInstanceData4x2Half = 6,
+        ShaderInstancingMethod_ObjectTranslationScaleHalf = 7,
+        ShaderInstancingMethod_ObjectTranslationScaleHalfInstanceData4x1Half = 8,
+        ShaderInstancingMethod_ObjectTranslationScaleHalfInstanceData4x2Half = 9,
+        ShaderInstancingMethod_PositionStream = 10,
+        ShaderInstancingMethod_PositionTbnStream = 11,
+        ShaderInstancingMethod_PrevPositionStream = 12,
+        ShaderInstancingMethod_LinearMediaStreaming = 13,
+        ShaderInstancingMethod_PositionStreamAux = 14,
+        ShaderInstancingMethod_DxBuffer = 15,
+        ShaderInstancingMethod_DxBufferInstanceData4x1Float = 16,
+        ShaderInstancingMethod_DxBufferInstanceData4x2Float = 17,
+        ShaderInstancingMethod_Manual = 18,
+        ShaderInstancingMethodCount = 19
+    }
+    #endregion
+
+    public class ShaderBlockDepotItem
+    {
+        public ulong Hash => hash;
+
+        private ulong hash;
+        private ModifiedShaderBlockDepot modified;
+
+        public ShaderBlockDepotItem(ModifiedShaderBlockDepot inModified)
+        {
+            modified = inModified;
+        }
+
+        public virtual void Read(NativeReader reader, ShaderBlockDepotItem[] items)
+        {
+            hash = reader.ReadULong();
+        }
+
+        public virtual void Write(NativeWriter writer, List<int> relocTable, out long startOffset)
+        {
+            startOffset = writer.Position;
+            writer.Write(Hash);
+            relocTable.Add((int)writer.Position);
+        }
+
+        public virtual void CalculateHash()
+        {
+        }
+    }
+
+    public class ShaderBlockEntry : ShaderBlockDepotItem
+    {
+        public IEnumerable<ShaderParamDbBlock> ShaderParamDbBlocks => paramDbBlocks;
+
+        private ShaderParamDbBlock[] paramDbBlocks;
+
+        public ShaderBlockEntry(ModifiedShaderBlockDepot inModified) : base(inModified)
+        {
+        }
+
+        public override void Read(NativeReader reader, ShaderBlockDepotItem[] items)
+        {
+            base.Read(reader, items);
+
+            long offset = reader.ReadLong();
+            long count = reader.ReadLong();
+
+            reader.Position = offset;
+
+            paramDbBlocks = new ShaderParamDbBlock[count];
+            for (long i = 0; i < count; i++)
+            {
+                int index = reader.ReadInt();
+                paramDbBlocks[i] = items[index] as ShaderParamDbBlock;
+            }
+        }
+    }
+
+    public class ShaderBlockMeshVariationEntry : ShaderBlockDepotItem
+    {
+        private Tuple<Guid,uint>[] rvmRefs;
+
+        public ShaderBlockMeshVariationEntry(ModifiedShaderBlockDepot inModified) : base(inModified)
+        {
+        }
+
+        public override void Read(NativeReader reader, ShaderBlockDepotItem[] items)
+        {
+            base.Read(reader, items);
+
+            long offset = reader.ReadLong();
+            long count = reader.ReadLong();
+
+            reader.Position = offset;
+
+            rvmRefs = new Tuple<Guid, uint>[count];
+            for (long i = 0; i < count; i++)
+                rvmRefs[i] = new Tuple<Guid, uint>(reader.ReadGuid(), reader.ReadUInt());
+        }
+    }
+
+    public class ShaderParamDbBlock : ShaderBlockDepotItem
+    {
+        public long Offset => offset;
+        public long Count => count;
+
+        private long offset;
+        private long count;
+
+        public ShaderParamDbBlock(ModifiedShaderBlockDepot inModified) : base(inModified)
+        {
+        }
+
+        public override void Read(NativeReader reader, ShaderBlockDepotItem[] items)
+        {
+            base.Read(reader, items);
+
+            offset = reader.ReadLong();
+            count = reader.ReadLong();
+
+            reader.Position = offset;
+        }
+    }
+
+    public class ShaderStaticParamDbBlock : ShaderParamDbBlock
+    {
+        public IEnumerable<ShaderParamDbBlock> ShaderParamDbBlocks => paramDbBlocks;
+
+        private ShaderParamDbBlock[] paramDbBlocks;
+
+        public ShaderStaticParamDbBlock(ModifiedShaderBlockDepot inModified) : base(inModified)
+        {
+        }
+
+        public override void Read(NativeReader reader, ShaderBlockDepotItem[] items)
+        {
+            base.Read(reader, items);
+
+            reader.Position = Offset;
+
+            paramDbBlocks = new ShaderParamDbBlock[Count];
+            for (long i = 0; i < Count; i++)
+            {
+                int index = reader.ReadInt();
+                paramDbBlocks[i] = items[index] as ShaderParamDbBlock;
+            }
+        }
+    }
+
+    public class ShaderPersistentParamDbBlock : ShaderParamDbBlock
+    {
+        public IEnumerable<ShaderBlockParameter> Parameters => parameters;
+
+        private ShaderBlockParameter[] parameters;
+
+        public ShaderPersistentParamDbBlock(ModifiedShaderBlockDepot inModified) : base(inModified)
+        {
+        }
+
+        public override void Read(NativeReader reader, ShaderBlockDepotItem[] items)
+        {
+            base.Read(reader, items);
+
+            reader.Position = Offset;
+            int count = reader.ReadInt();
+
+            for (int i = 0; i < count; i++)
+                parameters[i] = new ShaderBlockParameter(reader);
+        }
+
+        public bool SetParameter(string name, object value)
+        {
+            return SetParameter((uint)Utils.HashString(name, true), value);
+        }
+
+        public bool SetParameter(uint nameHash, object value)
+        {
+            for (int i = 0; i < parameters.Length; i++)
+            {
+                if (parameters[i].NameHash == nameHash)
+                {
+                    parameters[i].SetValue(value);
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public bool HasParameter(string name)
+        {
+            return HasParameter((uint)Utils.HashString(name, true));
+        }
+
+        public bool HasParameter(uint nameHash)
+        {
+            for (int i = 0; i < parameters.Length; i++)
+            {
+                if (parameters[i].NameHash == nameHash)
+                    return true;
+            }
+            return false;
+        }
+    }
+
+    public class MeshParamDbBlock : ShaderPersistentParamDbBlock
+    {
+        public int LodIndex => lodIndex;
+        public Guid MeshAssetGuid => meshAssetGuid;
+
+        private int lodIndex;
+        private Guid meshAssetGuid;
+
+        public MeshParamDbBlock(ModifiedShaderBlockDepot inModified) : base(inModified)
+        {
+        }
+
+        public override void Read(NativeReader reader, ShaderBlockDepotItem[] items)
+        {
+            base.Read(reader, items);
+
+            lodIndex = (int)(Count & ~uint.MaxValue);
+
+            reader.Position = Offset + (Count & uint.MaxValue);
+            reader.Pad(4);
+            reader.Position += 3 * 8;
+            meshAssetGuid = reader.ReadGuid();
+        }
+    }
+
+    public class ShaderBlockParameter
+    {
+        public uint NameHash => nameHash;
+
+        private ulong hash;
+        private uint nameHash;
+        private uint typeHash;
+        private ushort used;
+        private byte[] value;
+
+        public ShaderBlockParameter(string name, object value)
+        {
+            nameHash = (uint)Fnv1.HashString(name.ToLower());
+            Type objType = value.GetType();
+            Type actualType = null;
+
+            if (value is bool)
+                actualType = TypeLibrary.GetType((uint)Fnv1.HashString("Boolean"));
+            else if (value is uint)
+                actualType = TypeLibrary.GetType((uint)Fnv1.HashString("Uint32"));
+            else if (value is float)
+                actualType = TypeLibrary.GetType((uint)Fnv1.HashString("Float32"));
+            else if (value is long)
+                actualType = TypeLibrary.GetType((uint)Fnv1.HashString("Int64"));
+            else if (value is float[])
+                actualType = TypeLibrary.GetType((uint)Fnv1.HashString("Vec"));
+            else if (value is Guid)
+                actualType = TypeLibrary.GetType((uint)Fnv1.HashString("ITexture"));
+            else if (value is PrimitiveType)
+                actualType = TypeLibrary.GetType((uint)Fnv1.HashString("PrimitiveType"));
+            else if (value is ShaderInstancingMethod)
+                actualType = TypeLibrary.GetType((uint)Fnv1.HashString("ShaderInstancingMethod"));
+            else if (value is RvmLevelOfDetail)
+                actualType = TypeLibrary.GetType((uint)Fnv1.HashString("RvmLevelOfDetail"));
+            else
+                actualType = objType;
+
+            typeHash = (uint)Fnv1.HashString(actualType.Name);
+            used = 1;
+
+            hash = CalculateHash(name, actualType);
+
+            SetValue(value);
+        }
+
+        public ShaderBlockParameter(NativeReader reader)
+        {
+            hash = reader.ReadULong();
+            typeHash = reader.ReadUInt();
+            used = reader.ReadUShort();
+            nameHash = (uint)((uint)reader.ReadUShort() << 16 | (((hash >> 48) & 0xFFFF)));
+
+            int size = reader.ReadInt();
+            if (typeHash == 0xad0abfd3 /* ITexture */)
+                size = 16;
+
+            value = reader.ReadBytes(size);
+        }
+
+        public object GetValue()
+        {
+            object retVal = null;
+            switch (typeHash)
+            {
+                case 0x9638b221:
+                    retVal = BitConverter.ToBoolean(value, 0); break;
+                case 0x0d1cfa1b:
+                    retVal = value[0]; break;
+                case 0xb0bc3c22:
+                    retVal = BitConverter.ToUInt32(value, 0); break;
+                case 0x7f39a7b4:
+                    retVal = BitConverter.ToSingle(value, 0); break;
+                case 0xcc971f4:
+                    retVal = BitConverter.ToInt64(value, 0); break;
+                case 0xad0abfd3: retVal = new Guid(value); break;
+                case 0x0b87fa95:
+                    float[] f = new float[4];
+                    f[0] = BitConverter.ToSingle(value, 0);
+                    f[1] = BitConverter.ToSingle(value, 4);
+                    f[2] = BitConverter.ToSingle(value, 8);
+                    f[3] = BitConverter.ToSingle(value, 12);
+                    retVal = f;
+                    break;
+                case 0x3AD97822:
+                    retVal = (RvmLevelOfDetail)BitConverter.ToInt32(value, 0); break;
+                case 0x963FC9FC:
+                    retVal = (PrimitiveType)BitConverter.ToInt32(value, 0); break;
+                case 0x85EA841F:
+                    retVal = (ShaderInstancingMethod)BitConverter.ToInt32(value, 0); break;
+                default:
+                    throw new NotImplementedException("type:" + typeHash.ToString("X8"));
+            }
+            return retVal;
+        }
+
+        public void SetValue(object value)
+        {
+            switch (typeHash)
+            {
+                case 0x9638b221:
+                    value = new byte[1] { (byte)(((bool)value) ? 1 : 0) }; break;
+                case 0x0d1cfa1b:
+                    value = new byte[1] { (byte)value }; break;
+                case 0xb0bc3c22:
+                    value = BitConverter.GetBytes((uint)value); break;
+                case 0x7f39a7b4:
+                    value = BitConverter.GetBytes((float)value); break;
+                case 0xcc971f4: 
+                   value = BitConverter.GetBytes((long)value); break;
+                case 0x0b87fa95:
+                    using (NativeWriter writer = new NativeWriter(new MemoryStream()))
+                    {
+                        float[] f = (float[])value;
+                        writer.Write(f[0]);
+                        writer.Write(f[1]);
+                        writer.Write(f[2]);
+                        writer.Write(f[3]);
+                        value = writer.ToByteArray();
+                    }
+                    break;
+                case 0xad0abfd3:
+                    value = ((Guid)value).ToByteArray(); break;
+                case 0x3AD97822:
+                case 0x963FC9FC:
+                case 0x85EA841F:
+                    value = BitConverter.GetBytes((int)value); break;
+                default:
+                    throw new NotImplementedException("type:" + typeHash.ToString("X8"));
+            }
+        }
+
+        public byte[] ToBytes()
+        {
+            using (NativeWriter writer = new NativeWriter(new MemoryStream()))
+            {
+                writer.Write(hash);
+                writer.Write(typeHash);
+                writer.Write(used);
+                writer.Write((ushort)(nameHash >> 16));
+                writer.Write((typeHash == 0xad0abfd3) ? 1 : value.Length);
+                writer.Write(value);
+
+                return writer.ToByteArray(); ;
+            }
+        }
+
+        private ulong CalculateHash(string name, Type type)
+        {
+            string typeName = type.Name;
+            string typeModule = type.GetCustomAttribute<EbxClassMetaAttribute>().Namespace;
+
+            byte[] buffer = null;
+            using (NativeWriter writer = new NativeWriter(new MemoryStream()))
+            {
+                writer.Write(0x01);
+                writer.Write(name.Length);
+                writer.Write(typeName.Length);
+                writer.Write(typeModule.Length);
+                writer.WriteFixedSizedString(name, name.Length);
+                writer.WriteFixedSizedString(typeName, typeName.Length);
+                writer.WriteFixedSizedString(typeModule, typeModule.Length);
+                buffer = writer.ToByteArray();
+            }
+
+            return ((CityHash.Hash64(buffer) & 0xFFFFFFFFFFFF) | ((ulong)Fnv1.HashString(name.ToLower()) << 48));
+        }
+    }
+
+    public class ShaderBlockDepot : Resource
+    {
+        private ModifiedShaderBlockDepot modified;
+        private ShaderBlockDepotItem[] items;
+
+        public ShaderBlockDepot()
+        {
+        }
+
+        public ShaderBlockDepot(byte[] inMeta)
+        {
+            resMeta = inMeta;
+        }
+
+        public override void Read(NativeReader reader, AssetManager am, ResAssetEntry entry, ModifiedResource modifiedData)
+        {
+            base.Read(reader, am, entry, modifiedData);
+
+            modified = (ModifiedShaderBlockDepot)modifiedData;
+
+            uint count = BitConverter.ToUInt32(resMeta, 0x0c);
+            items = new ShaderBlockDepotItem[count];
+            long[] offsets = new long[count];
+
+            for (uint i = 0; i < count; i++)
+            {
+                offsets[i] = reader.ReadLong();
+                long type = reader.ReadLong();
+
+                ShaderBlockDepotItem item;
+
+                switch (type)
+                {
+                    case 0:
+                        item = new ShaderBlockEntry(modified);
+                        break;
+                    case 1:
+                        item = new ShaderPersistentParamDbBlock(modified);
+                        break;
+                    case 2:
+                        item = new ShaderStaticParamDbBlock(modified);
+                        break;
+                    case 3:
+                        item = new MeshParamDbBlock(modified);
+                        break;
+                    case 4:
+                        item = new ShaderBlockMeshVariationEntry(modified);
+                        break;
+                    default:
+                        throw new NotImplementedException("block type: " + type.ToString());
+                }
+
+                items[i] = item;
+            }
+
+            for (uint i = 0; i < count; i++)
+            {
+                reader.Position = offsets[i];
+                items[i].Read(reader, items);
+            }
+        }
+    }
+
+    public class ModifiedShaderBlockDepot : ModifiedResource
+    {
+        private const uint magic = 0x53424431; // SBD1
+        private List<ulong> hashes = new List<ulong>();
+        private List<ShaderBlockDepotItem> items = new List<ShaderBlockDepotItem>();
+
+        public ModifiedShaderBlockDepot()
+        {
+        }
+
+        public void Merge(ModifiedShaderBlockDepot newMsbd)
+        {
+            for (int i = 0; i < hashes.Count; i++)
+            {
+                if (newMsbd.ContainsHash(hashes[i]))
+                    items[i] = newMsbd.GetItem(hashes[i]);
+            }
+            for (int i = 0; i < newMsbd.hashes.Count; i++)
+            {
+                if (!ContainsHash(newMsbd.hashes[i]))
+                {
+                    AddItem(newMsbd.hashes[i], newMsbd.items[i]);
+                }
+            }
+        }
+
+        internal bool ContainsHash(ulong hash)
+        {
+            return hashes.Contains(hash);
+        }
+
+        internal ShaderBlockDepotItem GetItem(ulong hash)
+        {
+            return items[hashes.IndexOf(hash)];
+        }
+
+        internal void AddItem(ulong hash, ShaderBlockDepotItem resource)
+        {
+            int index = hashes.IndexOf(hash);
+            if (index == -1)
+            {
+                hashes.Add(hash);
+                items.Add(null);
+                index = items.Count - 1;
+            }
+
+            items[index] = resource;
+        }
+
+        public override void ReadInternal(NativeReader reader)
+        {
+            base.ReadInternal(reader);
+
+            if (reader.ReadUInt() != magic)
+            {
+                reader.Position -= 4;
+            }
+
+            int count = reader.ReadInt();
+            reader.Pad(0x10);
+
+            List<long> offsets = new List<long>();
+            for (int i = 0; i < count; i++)
+            {
+                offsets.Add(reader.ReadLong());
+
+                long type = reader.ReadLong();
+                ShaderBlockDepotItem item;
+
+                switch (type)
+                {
+                    case 0:
+                        item = new ShaderBlockEntry(this);
+                        break;
+                    case 1:
+                        item = new ShaderPersistentParamDbBlock(this);
+                        break;
+                    case 2:
+                        item = new ShaderStaticParamDbBlock(this);
+                        break;
+                    case 3:
+                        item = new MeshParamDbBlock(this);
+                        break;
+                    case 4:
+                        item = new ShaderBlockMeshVariationEntry(this);
+                        break;
+                    default:
+                        throw new NotImplementedException("block type: " + type.ToString());
+                }
+
+                items.Add(item);
+            }
+
+            for (int i = 0; i < items.Count; i++)
+            {
+                reader.Position = offsets[i];
+                items[i].Read(reader, items.ToArray());
+            }
+        }
+
+        public override void SaveInternal(NativeWriter writer)
+        {
+            base.SaveInternal(writer);
         }
     }
 }

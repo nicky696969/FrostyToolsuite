@@ -19,6 +19,7 @@ namespace RootInstanceEntiresPlugin
 
         private const uint cacheVersion = 1;
         private static Dictionary<Guid, Guid> ebxRootInstanceGuidList = new Dictionary<Guid, Guid>();
+        private static Dictionary<Guid, Guid> addedEbxRootInstanceGuidList = new Dictionary<Guid, Guid>();
 
         public static void LoadEbxRootInstanceEntries(FrostyTaskWindow task)
         {
@@ -47,9 +48,25 @@ namespace RootInstanceEntiresPlugin
             IsLoaded = true;
         }
 
+        public static void LoadAddedEbxRootInstanceEntries(FrostyTaskWindow task)
+        {
+            addedEbxRootInstanceGuidList.Clear();
+
+            task.Update("Collecting added ebx root instance guids");
+
+            foreach (EbxAssetEntry entry in App.AssetManager.EnumerateEbx(modifiedOnly: true))
+            {
+                if (!entry.IsAdded)
+                    continue;
+
+                EbxAsset asset = App.AssetManager.GetEbx(entry);
+                addedEbxRootInstanceGuidList.Add(asset.RootInstanceGuid, entry.Guid);
+            }
+        }
+
         public static EbxAssetEntry GetEbxEntryByRootInstanceGuid(Guid guid)
         {
-            return ebxRootInstanceGuidList.ContainsKey(guid) ? App.AssetManager.GetEbxEntry(ebxRootInstanceGuidList[guid]) : null;
+            return ebxRootInstanceGuidList.ContainsKey(guid) ? App.AssetManager.GetEbxEntry(ebxRootInstanceGuidList[guid]) : addedEbxRootInstanceGuidList.ContainsKey(guid) ? App.AssetManager.GetEbxEntry(addedEbxRootInstanceGuidList[guid]) : null;
         }
 
         public static bool ReadCache(FrostyTaskWindow task)
@@ -78,7 +95,7 @@ namespace RootInstanceEntiresPlugin
                     ebxRootInstanceGuidList.Add(rootInstanceGuid, fileGuid);
                 }
             }
-
+            IsLoaded = true;
             return true;
         }
 

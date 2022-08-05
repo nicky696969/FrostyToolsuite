@@ -153,14 +153,22 @@ namespace DuplicationPlugin
                 // Duplicate the sbd
                 ResAssetEntry oldShaderBlock = App.AssetManager.GetResEntry(entry.Name.ToLower() + "_mesh/blocks");
                 ResAssetEntry newShaderBlock = DuplicateRes(oldShaderBlock, newName.ToLower() + "_mesh/blocks", ResourceType.ShaderBlockDepot);
-                ShaderBlockDepot shaderBlockDepot = App.AssetManager.GetResAs<ShaderBlockDepot>(newShaderBlock);
+                ShaderBlockDepot newShaderBlockDepot = App.AssetManager.GetResAs<ShaderBlockDepot>(newShaderBlock);
+                
+                // TODO: hacky way to generate unique hashes
+                for (int i = 0; i < newShaderBlockDepot.ResourceCount; i++)
+                {
+                    ShaderBlockResource res = newShaderBlockDepot.GetResource(i);
+                    res.ChangeHash(newMeshSet.NameHash);
+                }
 
                 // Change the references in the sbd
                 for (int lod = 0; lod < newMeshSet.Lods.Count; lod++)
                 {
-                    ShaderBlockEntry sbEntry = shaderBlockDepot.GetSectionEntry(lod);
-                    ShaderBlockMeshVariationEntry sbMvEntry = shaderBlockDepot.GetResource(sbEntry.Index + 1) as ShaderBlockMeshVariationEntry;
+                    ShaderBlockEntry sbEntry = newShaderBlockDepot.GetSectionEntry(lod);
+                    ShaderBlockMeshVariationEntry sbMvEntry = newShaderBlockDepot.GetResource(sbEntry.Index + 1) as ShaderBlockMeshVariationEntry;
 
+                    // calculate new entry hash
                     sbEntry.SetHash(newMeshSet.NameHash, 0, lod);
                     sbMvEntry.SetHash(newMeshSet.NameHash, 0, lod);
 
@@ -169,11 +177,10 @@ namespace DuplicationPlugin
                     {
                         MeshParamDbBlock mesh = sbEntry.GetMeshParams(section);
                         mesh.MeshAssetGuid = newAsset.RootInstanceGuid;
-                        mesh.Hash ^= 0xABCDEF;
                     }
                 }
 
-                App.AssetManager.ModifyRes(newShaderBlock.Name, shaderBlockDepot);
+                App.AssetManager.ModifyRes(newShaderBlock.Name, newShaderBlockDepot);
 
                 newEntry.LinkAsset(newShaderBlock);
             }
@@ -253,6 +260,13 @@ namespace DuplicationPlugin
                 // change namehash so the sbd hash can be calculated corretcly
                 nameHash = (uint)Utils.HashString(newName, true);
                 newRoot.NameHash = nameHash;
+
+                for (int i = 0; i < newShaderBlockDepot.ResourceCount; i++)
+                {
+                    ShaderBlockResource res = newShaderBlockDepot.GetResource(i);
+                    if (!(res is MeshParamDbBlock))
+                        res.ChangeHash(nameHash);
+                }
 
                 // Change the references in the sbd
                 for (int lod = 0; lod < meshSet.Lods.Count; lod++)
@@ -385,6 +399,27 @@ namespace DuplicationPlugin
     //        return newEntry;
     //    }
     //}
+
+    public class BlueprintBundleExtension : DuplicateAssetExtension
+    {
+        public override string AssetType => "BlueprintBundle";
+
+        public override EbxAssetEntry DuplicateAsset(EbxAssetEntry entry, string newName, bool createNew, Type newType)
+        {
+            // Duplicate the ebx
+            EbxAssetEntry newEntry = base.DuplicateAsset(entry, newName, createNew, newType);
+
+            // Add new bundle
+            BundleEntry newBundle = App.AssetManager.AddBundle("win32/" + newName.ToLower(), BundleType.BlueprintBundle, 0);
+
+            newEntry.AddedBundles.Clear();
+            newEntry.AddedBundles.Add(App.AssetManager.GetBundleId(newBundle));
+
+            newBundle.Blueprint = newEntry;
+
+            return newEntry;
+        }
+    }
 
     public class DuplicateAssetExtension
     {

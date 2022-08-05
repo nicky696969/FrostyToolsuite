@@ -247,6 +247,8 @@ namespace Frosty.ModSupport
                         }
 
                         DbObject chunkMeta = bundleObj.GetValue<DbObject>("chunkMeta");
+                        if (bundle.Add.Chunks.Count > 0 && chunkMeta == null)
+                            bundleObj.SetValue("chunkMeta", DbObject.CreateList());
 
                         // modify chunks
                         int chunkIndex = 0;
