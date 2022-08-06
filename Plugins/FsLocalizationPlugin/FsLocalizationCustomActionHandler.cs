@@ -93,16 +93,19 @@ namespace FsLocalizationPlugin
             dynamic localizedText = ebxAsset.RootObject;
 
             ChunkAssetEntry chunkEntry = am.GetChunkEntry(localizedText.BinaryChunk);
-            ChunkAssetEntry HistogramEntry = am.GetChunkEntry(localizedText.HistogramChunk);
+            ChunkAssetEntry histogramEntry = am.GetChunkEntry(localizedText.HistogramChunk);
             ChunkAssetEntry newChunkEntry = new ChunkAssetEntry();
+            ChunkAssetEntry newHistogramEntry = new ChunkAssetEntry();
 
-            byte[] buf2 = NativeReader.ReadInStream(am.GetChunk(HistogramEntry));
-            List<char> values = ModifyHistogram(buf2, modFs);
+            byte[] buf2 = NativeReader.ReadInStream(am.GetChunk(histogramEntry));
+            buf2 = ModifyHistogram(buf2, modFs, out List<char> values);
 
             byte[] buf = NativeReader.ReadInStream(am.GetChunk(chunkEntry));
             buf = ModifyChunk(buf, modFs, values);
 
             localizedText.BinaryChunkSize = (uint)buf.Length;
+            localizedText.HistogramChunkSize = (uint)buf2.Length;
+
             newChunkEntry.LogicalSize = (uint)buf.Length;
             buf = Utils.CompressFile(buf);
 
@@ -113,7 +116,18 @@ namespace FsLocalizationPlugin
             newChunkEntry.FirstMip = -1;
             newChunkEntry.IsTocChunk = true;
 
+            newHistogramEntry.LogicalSize = (uint)buf2.Length;
+            buf2 = Utils.CompressFile(buf2);
+
+            newHistogramEntry.Id = histogramEntry.Id;
+            newHistogramEntry.Sha1 = Utils.GenerateSha1(buf2);
+            newHistogramEntry.Size = buf2.Length;
+            newHistogramEntry.H32 = Fnv1.HashString(origEntry.Name.ToLower());
+            newHistogramEntry.FirstMip = -1;
+            newHistogramEntry.IsTocChunk = true;
+
             runtimeResources.AddResource(new RuntimeChunkResource(newChunkEntry), buf);
+            runtimeResources.AddResource(new RuntimeChunkResource(newHistogramEntry), buf2);
 
             using (EbxBaseWriter writer = EbxBaseWriter.CreateWriter(new MemoryStream()))
             {
@@ -127,26 +141,54 @@ namespace FsLocalizationPlugin
         }
 
         #endregion
-        private List<char> ModifyHistogram(byte[] histogramData, ModifiedFsLocalizationAsset modifiedData)
+        private byte[] ModifyHistogram(byte[] histogramData, ModifiedFsLocalizationAsset modifiedData, out List<char> values)
         {
-            List<char> values = new List<char>();
+            values = new List<char>();
             using (NativeReader reader = new NativeReader(new MemoryStream(histogramData)))
             {
-                uint unk = reader.ReadUInt();
-                long size = reader.ReadUInt();
-                uint unk2 = reader.ReadUInt();
+                uint magic = reader.ReadUInt();
+                uint size = reader.ReadUInt();
+                uint count = reader.ReadUInt();
 
-                for (int i = 0; i < (size / 2); i++)
+                for (int i = 0; i < 3072; i++)
                     values.Add(reader.ReadWideChar());
+
+                byte[] rest = reader.ReadToEnd();
+
+                foreach (uint id in modifiedData.EnumerateStrings())
+                {
+                    foreach (char c in modifiedData.GetString(id))
+                    {
+                        if (c < 0x80)
+                            continue;
+
+                        int index = values.FindIndex((char a) => { return a.Equals(c); });
+                        if (index == -1)
+                        {
+                            App.Logger.LogWarning("Expiremental adding of character: " + c + " from string: " + id.ToString("X8"));
+                            for (int i = 0x80; i < 3072; i++)
+                            {
+                                if (values[i] == 0)
+                                    values[i] = c;
+                            }
+                        }
+                    }
+                    
+                }
+                
+
+                using (NativeWriter writer = new NativeWriter(new MemoryStream(), wide: true))
+                {
+                    writer.Write(magic);
+                    writer.Write(size);
+                    writer.Write(count);
+
+                    for (int i = 0; i < 3072; i++)
+                        writer.Write(values[i]);
+
+                    return writer.ToByteArray();
+                }
             }
-            //using (NativeWriter chkwriter = new NativeWriter(new FileStream("D:\\Document\\Frosty Editor Alpha 4\\Exported.txt", FileMode.Create), false, true))
-            //{
-            //    foreach (ushort val in values)
-            //    {
-            //        chkwriter.WriteLine(val.ToString());
-            //    }
-            //}
-            return values;
         }
 
         public List<byte> GetShifts(List<char> Values)
