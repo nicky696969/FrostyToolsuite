@@ -409,11 +409,14 @@ namespace DuplicationPlugin
 
         public override EbxAssetEntry DuplicateAsset(EbxAssetEntry entry, string newName, bool createNew, Type newType)
         {
+            // BlueprintBundles always have lower case names
+            newName = newName.ToLower();
+
             // Duplicate the ebx
             EbxAssetEntry newEntry = base.DuplicateAsset(entry, newName, createNew, newType);
 
             // Add new bundle
-            BundleEntry newBundle = App.AssetManager.AddBundle("win32/" + newName.ToLower(), BundleType.BlueprintBundle, 0);
+            BundleEntry newBundle = App.AssetManager.AddBundle("win32/" + newName, BundleType.BlueprintBundle, 0);
 
             newEntry.AddedBundles.Clear();
             newEntry.AddedBundles.Add(App.AssetManager.GetBundleId(newBundle));
