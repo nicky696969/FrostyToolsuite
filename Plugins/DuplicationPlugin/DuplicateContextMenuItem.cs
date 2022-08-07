@@ -21,43 +21,73 @@ using System.Threading.Tasks;
 
 namespace DuplicationPlugin
 {
-    public class TextureExtension : DuplicateAssetExtension
+    public class TextureBaseExtension : DuplicateAssetExtension
     {
-        public override string AssetType => "TextureAsset";
+        public override string AssetType => "TextureBaseAsset";
 
         public override EbxAssetEntry DuplicateAsset(EbxAssetEntry entry, string newName, bool createNew, Type newType)
         {
-            // Duplicate the ebx
             EbxAssetEntry newEntry = base.DuplicateAsset(entry, newName, createNew, newType);
+            if (newEntry == null)
+                return null;
             EbxAsset newAsset = App.AssetManager.GetEbx(newEntry);
-            dynamic newTextureAsset = newAsset.RootObject;
 
-            // Get the original asset root object data
             EbxAsset asset = App.AssetManager.GetEbx(entry);
             dynamic textureAsset = asset.RootObject;
 
-            // Get the original chunk and res entries
             ResAssetEntry resEntry = App.AssetManager.GetResEntry(textureAsset.Resource);
-            Texture texture = App.AssetManager.GetResAs<Texture>(resEntry);
-            ChunkAssetEntry chunkEntry = App.AssetManager.GetChunkEntry(texture.ChunkId);
+            Texture texture = new Texture();
+            texture.Read(new NativeReader(App.AssetManager.GetRes(resEntry)), App.AssetManager, resEntry, null);
 
-            // Duplicate the res
-            ResAssetEntry newResEntry = DuplicateRes(resEntry, newName, ResourceType.Texture);
-            Texture newTexture = App.AssetManager.GetResAs<Texture>(newResEntry);
-            newTextureAsset.Resource = newResEntry.ResRid;
-
-            // Duplicate the chunk
-            Guid chunkGuid = DuplicateChunk(chunkEntry, texture.Flags.HasFlag(TextureFlags.OnDemandLoaded) || texture.Type != TextureType.TT_2d ? null : texture);
+            Guid chunkGuid = App.AssetManager.AddChunk(new NativeReader(texture.Data).ReadToEnd(), null, texture);
             ChunkAssetEntry newChunkEntry = App.AssetManager.GetChunkEntry(chunkGuid);
-            newTexture.ChunkId = chunkGuid;
+            texture.ChunkId = chunkGuid;
 
-            // Link the newly duplicates ebx, chunk, and res entries together
+            ResAssetEntry newResEntry = App.AssetManager.AddRes(newName, ResourceType.Texture, resEntry.ResMeta, new NativeReader(App.AssetManager.GetRes(resEntry)).ReadToEnd());
+            ((dynamic)newAsset.RootObject).Resource = newResEntry.ResRid;
+            Texture newtexture = App.AssetManager.GetResAs<Texture>(newResEntry);
+            newtexture.ChunkId = new Guid(newChunkEntry.Name);
+
             newResEntry.LinkAsset(newChunkEntry);
             newEntry.LinkAsset(newResEntry);
 
-            // Modify the newly duplicates ebx, chunk, and res
+            newResEntry.AddedBundles.AddRange(newEntry.EnumerateBundles());
+            newChunkEntry.AddedBundles.AddRange(newEntry.EnumerateBundles());
+
             App.AssetManager.ModifyEbx(newEntry.Name, newAsset);
-            App.AssetManager.ModifyRes(newResEntry.Name, newTexture);
+            App.AssetManager.ModifyRes(newResEntry.Name, newtexture);
+
+            //// Duplicate the ebx
+            //EbxAssetEntry newEntry = base.DuplicateAsset(entry, newName, createNew, newType);
+            //EbxAsset newAsset = App.AssetManager.GetEbx(newEntry);
+            //dynamic newTextureAsset = newAsset.RootObject;
+
+            //// Get the original asset root object data
+            //EbxAsset asset = App.AssetManager.GetEbx(entry);
+            //dynamic textureAsset = asset.RootObject;
+
+            //// Get the original chunk and res entries
+            //ResAssetEntry resEntry = App.AssetManager.GetResEntry(textureAsset.Resource);
+            //Texture texture = App.AssetManager.GetResAs<Texture>(resEntry);
+            //ChunkAssetEntry chunkEntry = App.AssetManager.GetChunkEntry(texture.ChunkId);
+
+            //// Duplicate the res
+            //ResAssetEntry newResEntry = DuplicateRes(resEntry, newName, ResourceType.Texture);
+            //Texture newTexture = App.AssetManager.GetResAs<Texture>(newResEntry);
+            //newTextureAsset.Resource = newResEntry.ResRid;
+
+            //// Duplicate the chunk
+            //Guid chunkGuid = DuplicateChunk(chunkEntry, texture.Flags.HasFlag(TextureFlags.OnDemandLoaded) || texture.Type != TextureType.TT_2d ? null : texture);
+            //ChunkAssetEntry newChunkEntry = App.AssetManager.GetChunkEntry(chunkGuid);
+            //newTexture.ChunkId = chunkGuid;
+
+            //// Link the newly duplicates ebx, chunk, and res entries together
+            //newResEntry.LinkAsset(newChunkEntry);
+            //newEntry.LinkAsset(newResEntry);
+
+            //// Modify the newly duplicates ebx, chunk, and res
+            //App.AssetManager.ModifyEbx(newEntry.Name, newAsset);
+            //App.AssetManager.ModifyRes(newResEntry.Name, newTexture);
 
             return newEntry;
         }
