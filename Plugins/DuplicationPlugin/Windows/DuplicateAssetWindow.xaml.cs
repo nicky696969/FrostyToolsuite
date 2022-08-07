@@ -21,8 +21,9 @@ namespace DuplicationPlugin.Windows
         public string SelectedPath { get; private set; } = "";
         public string SelectedName { get; private set; } = "";
         public Type SelectedType { get; private set; } = null;
-        public Guid SelectedInstanceGUID { get; private set; } = new Guid();
+        public Guid SelectedRootGUID { get; private set; } = new Guid();
         public Guid SelectedFileGUID { get; private set; } = Guid.NewGuid();
+
         private EbxAssetEntry entry;
 
         public DuplicateAssetWindow(EbxAssetEntry currentEntry)
@@ -32,11 +33,11 @@ namespace DuplicationPlugin.Windows
             pathSelector.ItemsSource = App.AssetManager.EnumerateEbx();
             entry = currentEntry;
             EbxAsset asset = App.AssetManager.GetEbx(entry);
-            SelectedInstanceGUID = Utils.GenerateDeterministicGuid(asset.Objects, asset.GetType(), SelectedFileGUID);
+            SelectedRootGUID = Utils.GenerateDeterministicGuid(asset.Objects, asset.GetType(), SelectedFileGUID);
 
             assetNameTextBox.Text = currentEntry.Filename;
             assetTypeTextBox.Text = entry.Type;
-            assetInstanceGuidTextBox.Text = SelectedInstanceGUID.ToString();
+            assetInstanceGuidTextBox.Text = SelectedRootGUID.ToString();
             assetFileGuidTextBox.Text = SelectedFileGUID.ToString();
         }
 
@@ -55,7 +56,7 @@ namespace DuplicationPlugin.Windows
             catch
             {
                 if (source == assetInstanceGuidTextBox)
-                    source.Text = SelectedInstanceGUID.ToString();
+                    source.Text = SelectedRootGUID.ToString();
                 else if (source == assetFileGuidTextBox)
                     source.Text = SelectedFileGUID.ToString();
             }
@@ -80,7 +81,7 @@ namespace DuplicationPlugin.Windows
                 {
                     SelectedName = tmp;
                     SelectedPath = pathSelector.SelectedPath;
-                    SelectedInstanceGUID = instanceGuid;
+                    SelectedRootGUID = instanceGuid;
                     SelectedFileGUID = fileGuid;
 
                     DialogResult = true;

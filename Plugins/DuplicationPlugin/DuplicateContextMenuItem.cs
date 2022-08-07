@@ -25,10 +25,10 @@ namespace DuplicationPlugin
     {
         public override string AssetType => "TextureAsset";
 
-        public override EbxAssetEntry DuplicateAsset(EbxAssetEntry entry, string newName, bool createNew, Type newType, Guid newFileGuid, Guid newInstanceGuid)
+        public override EbxAssetEntry DuplicateAsset(EbxAssetEntry entry, string newName, bool createNew, Type newType, Guid newFileGuid, Guid newRootGuid)
         {
             // Duplicate the ebx
-            EbxAssetEntry newEntry = base.DuplicateAsset(entry, newName, createNew, newType, newFileGuid, newInstanceGuid);
+            EbxAssetEntry newEntry = base.DuplicateAsset(entry, newName, createNew, newType, newFileGuid, newRootGuid);
             EbxAsset newAsset = App.AssetManager.GetEbx(newEntry);
             dynamic newTextureAsset = newAsset.RootObject;
 
@@ -67,10 +67,10 @@ namespace DuplicationPlugin
     {
         public override string AssetType => "AtlasTextureAsset";
 
-        public override EbxAssetEntry DuplicateAsset(EbxAssetEntry entry, string newName, bool createNew, Type newType, Guid newFileGuid, Guid newInstanceGuid)
+        public override EbxAssetEntry DuplicateAsset(EbxAssetEntry entry, string newName, bool createNew, Type newType, Guid newFileGuid, Guid newRootGuid)
         {
             // Duplicate the ebx
-            EbxAssetEntry newEntry = base.DuplicateAsset(entry, newName, createNew, newType, newFileGuid, newInstanceGuid);
+            EbxAssetEntry newEntry = base.DuplicateAsset(entry, newName, createNew, newType, newFileGuid, newRootGuid);
             EbxAsset newAsset = App.AssetManager.GetEbx(newEntry);
             dynamic newRoot = newAsset.RootObject;
 
@@ -99,13 +99,13 @@ namespace DuplicationPlugin
     {
         public override string AssetType => "MeshAsset";
 
-        public override EbxAssetEntry DuplicateAsset(EbxAssetEntry entry, string newName, bool createNew, Type newType, Guid newFileGuid, Guid newInstanceGuid)
+        public override EbxAssetEntry DuplicateAsset(EbxAssetEntry entry, string newName, bool createNew, Type newType, Guid newFileGuid, Guid newRootGuid)
         {
             // Meshes always have lowercase names
             newName = newName.ToLower();
 
             // Duplicate the ebx
-            EbxAssetEntry newEntry = base.DuplicateAsset(entry, newName, createNew, newType, newFileGuid, newInstanceGuid);
+            EbxAssetEntry newEntry = base.DuplicateAsset(entry, newName, createNew, newType, newFileGuid, newRootGuid);
             EbxAsset newAsset = App.AssetManager.GetEbx(newEntry);
             dynamic newRoot = newAsset.RootObject;
 
@@ -199,13 +199,13 @@ namespace DuplicationPlugin
     {
         public override string AssetType => "ObjectVariation";
 
-        public override EbxAssetEntry DuplicateAsset(EbxAssetEntry entry, string newName, bool createNew, Type newType, Guid newFileGuid, Guid newInstanceGuid)
+        public override EbxAssetEntry DuplicateAsset(EbxAssetEntry entry, string newName, bool createNew, Type newType, Guid newFileGuid, Guid newRootGuid)
         {
             if (ProfilesLibrary.DataVersion != (int)ProfileVersion.StarWarsBattlefrontII)
-                return base.DuplicateAsset(entry, newName, createNew, newType, newFileGuid, newInstanceGuid);
+                return base.DuplicateAsset(entry, newName, createNew, newType, newFileGuid, newRootGuid);
 
             // Duplicate the ebx
-            EbxAssetEntry newEntry = base.DuplicateAsset(entry, newName, createNew, newType, newFileGuid, newInstanceGuid);
+            EbxAssetEntry newEntry = base.DuplicateAsset(entry, newName, createNew, newType, newFileGuid, newRootGuid);
             EbxAsset newAsset = App.AssetManager.GetEbx(newEntry);
             dynamic newRoot = newAsset.RootObject;
 
@@ -296,10 +296,10 @@ namespace DuplicationPlugin
     {
         public override string AssetType => "SvgImage";
 
-        public override EbxAssetEntry DuplicateAsset(EbxAssetEntry entry, string newName, bool createNew, Type newType, Guid newFileGuid, Guid newInstanceGuid)
+        public override EbxAssetEntry DuplicateAsset(EbxAssetEntry entry, string newName, bool createNew, Type newType, Guid newFileGuid, Guid newRootGuid)
         {
             // Duplicate the ebx
-            EbxAssetEntry newEntry = base.DuplicateAsset(entry, newName, createNew, newType, newFileGuid, newInstanceGuid);
+            EbxAssetEntry newEntry = base.DuplicateAsset(entry, newName, createNew, newType, newFileGuid, newRootGuid);
             EbxAsset newAsset = App.AssetManager.GetEbx(newEntry);
             dynamic newRoot = newAsset.RootObject;
 
@@ -321,10 +321,10 @@ namespace DuplicationPlugin
     {
         public override string AssetType => "SoundWaveAsset";
 
-        public override EbxAssetEntry DuplicateAsset(EbxAssetEntry entry, string newName, bool createNew, Type newType, Guid newFileGuid, Guid newInstanceGuid)
+        public override EbxAssetEntry DuplicateAsset(EbxAssetEntry entry, string newName, bool createNew, Type newType, Guid newFileGuid, Guid newRootGuid)
         {
             // Duplicate the ebx
-            EbxAssetEntry newEntry = base.DuplicateAsset(entry, newName, createNew, newType, newFileGuid, newInstanceGuid);
+            EbxAssetEntry newEntry = base.DuplicateAsset(entry, newName, createNew, newType, newFileGuid, newRootGuid);
             EbxAsset newAsset = App.AssetManager.GetEbx(newEntry);
             dynamic newRoot = newAsset.RootObject;
 
@@ -348,10 +348,10 @@ namespace DuplicationPlugin
     {
         public override string AssetType => "OctaneAsset";
 
-        public override EbxAssetEntry DuplicateAsset(EbxAssetEntry entry, string newName, bool createNew, Type newType, Guid newFileGuid, Guid newInstanceGuid)
+        public override EbxAssetEntry DuplicateAsset(EbxAssetEntry entry, string newName, bool createNew, Type newType, Guid newFileGuid, Guid newRootGuid)
         {
             // Duplicate the ebx
-            EbxAssetEntry newEntry = base.DuplicateAsset(entry, newName, createNew, newType, newFileGuid, newInstanceGuid);
+            EbxAssetEntry newEntry = base.DuplicateAsset(entry, newName, createNew, newType, newFileGuid, newRootGuid);
             EbxAsset newAsset = App.AssetManager.GetEbx(newEntry);
             dynamic newRoot = newAsset.RootObject;
 
@@ -407,13 +407,13 @@ namespace DuplicationPlugin
     {
         public override string AssetType => "BlueprintBundle";
 
-        public override EbxAssetEntry DuplicateAsset(EbxAssetEntry entry, string newName, bool createNew, Type newType, Guid newFileGuid, Guid newInstanceGuid)
+        public override EbxAssetEntry DuplicateAsset(EbxAssetEntry entry, string newName, bool createNew, Type newType, Guid newFileGuid, Guid newRootGuid)
         {
             // BlueprintBundles always have lower case names
             newName = newName.ToLower();
 
             // Duplicate the ebx
-            EbxAssetEntry newEntry = base.DuplicateAsset(entry, newName, createNew, newType, newFileGuid, newInstanceGuid);
+            EbxAssetEntry newEntry = base.DuplicateAsset(entry, newName, createNew, newType, newFileGuid, newRootGuid);
 
             // Add new bundle
             BundleEntry newBundle = App.AssetManager.AddBundle("win32/" + newName, BundleType.BlueprintBundle, 0);
@@ -431,7 +431,7 @@ namespace DuplicationPlugin
     {
         public virtual string AssetType => null;
 
-        public virtual EbxAssetEntry DuplicateAsset(EbxAssetEntry entry, string newName, bool createNew, Type newType, Guid newFileGuid, Guid newInstanceGuid)
+        public virtual EbxAssetEntry DuplicateAsset(EbxAssetEntry entry, string newName, bool createNew, Type newType, Guid newFileGuid, Guid newRootGuid)
         {
             EbxAsset asset = App.AssetManager.GetEbx(entry);
             EbxAsset newAsset = null;
@@ -456,7 +456,7 @@ namespace DuplicationPlugin
             dynamic obj = newAsset.RootObject;
             obj.Name = newName;
 
-            AssetClassGuid guid = new AssetClassGuid(newInstanceGuid, -1);
+            AssetClassGuid guid = new AssetClassGuid(newRootGuid, -1);
             obj.SetInstanceGuid(guid);
 
             EbxAssetEntry newEntry = App.AssetManager.AddEbx(newName, newAsset);
@@ -534,7 +534,7 @@ namespace DuplicationPlugin
             string newName = win.SelectedPath + "/" + win.SelectedName;
             newName = newName.Trim('/');
             Guid newFileGuid = win.SelectedFileGUID;
-            Guid newInstanceGuid = win.SelectedInstanceGUID;
+            Guid newRootGuid = win.SelectedRootGUID;
 
             Type newType = win.SelectedType;
             FrostyTaskWindow.Show("Duplicating asset", "", (task) =>
@@ -554,7 +554,7 @@ namespace DuplicationPlugin
                         }
                     }
 
-                    extensions[key].DuplicateAsset(entry, newName, newType != null, newType, newFileGuid, newInstanceGuid);
+                    extensions[key].DuplicateAsset(entry, newName, newType != null, newType, newFileGuid, newRootGuid);
                 }
                 catch (Exception e)
                 {
