@@ -317,36 +317,9 @@ namespace DuplicationPlugin
         }
     }
 
-    public class SoundWaveExtension : DuplicateAssetExtension
+    public class SoundDataExtension : DuplicateAssetExtension
     {
-        public override string AssetType => "SoundWaveAsset";
-
-        public override EbxAssetEntry DuplicateAsset(EbxAssetEntry entry, string newName, bool createNew, Type newType)
-        {
-            // Duplicate the ebx
-            EbxAssetEntry newEntry = base.DuplicateAsset(entry, newName, createNew, newType);
-            EbxAsset newAsset = App.AssetManager.GetEbx(newEntry);
-            dynamic newRoot = newAsset.RootObject;
-
-            // Duplicate the chunks
-            foreach (dynamic chunk in newRoot.Chunks)
-            {
-                ChunkAssetEntry soundChunk = App.AssetManager.GetChunkEntry(chunk.ChunkId);
-                Guid chunkId = DuplicateChunk(soundChunk);
-
-                chunk.ChunkId = chunkId;
-                newEntry.LinkAsset(App.AssetManager.GetChunkEntry(chunkId));
-            }
-
-            App.AssetManager.ModifyEbx(newEntry.Name, newAsset);
-
-            return newEntry;
-        }
-    }
-
-    public class OctaneAssetExtension : DuplicateAssetExtension
-    {
-        public override string AssetType => "OctaneAsset";
+        public override string AssetType => "SoundDataAsset";
 
         public override EbxAssetEntry DuplicateAsset(EbxAssetEntry entry, string newName, bool createNew, Type newType)
         {
