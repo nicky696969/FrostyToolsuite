@@ -42,12 +42,12 @@ namespace DuplicationPlugin
             ChunkAssetEntry chunkEntry = App.AssetManager.GetChunkEntry(texture.ChunkId);
 
             // Duplicate the res
-            ResAssetEntry newResEntry = DuplicateRes(resEntry, newName.ToLower(), ResourceType.Texture);
+            ResAssetEntry newResEntry = DuplicateRes(resEntry, newName, ResourceType.Texture);
             Texture newTexture = App.AssetManager.GetResAs<Texture>(newResEntry);
             newTextureAsset.Resource = newResEntry.ResRid;
 
             // Duplicate the chunk
-            Guid chunkGuid = DuplicateChunk(chunkEntry, newTexture.Flags.HasFlag(TextureFlags.OnDemandLoaded) || newTexture.Type != TextureType.TT_2d ? null : newTexture);
+            Guid chunkGuid = DuplicateChunk(chunkEntry, texture.Flags.HasFlag(TextureFlags.OnDemandLoaded) || texture.Type != TextureType.TT_2d ? null : texture);
             ChunkAssetEntry newChunkEntry = App.AssetManager.GetChunkEntry(chunkGuid);
             newTexture.ChunkId = chunkGuid;
 
@@ -101,6 +101,9 @@ namespace DuplicationPlugin
 
         public override EbxAssetEntry DuplicateAsset(EbxAssetEntry entry, string newName, bool createNew, Type newType, Guid newFileGuid, Guid newInstanceGuid)
         {
+            // Meshes always have lowercase names
+            newName = newName.ToLower();
+
             // Duplicate the ebx
             EbxAssetEntry newEntry = base.DuplicateAsset(entry, newName, createNew, newType, newFileGuid, newInstanceGuid);
             EbxAsset newAsset = App.AssetManager.GetEbx(newEntry);
@@ -108,16 +111,16 @@ namespace DuplicationPlugin
 
             // Duplicate the res
             ResAssetEntry oldResEntry = App.AssetManager.GetResEntry(newRoot.MeshSetResource);
-            ResAssetEntry newResEntry = DuplicateRes(oldResEntry, newName.ToLower(), ResourceType.MeshSet);
+            ResAssetEntry newResEntry = DuplicateRes(oldResEntry, newName, ResourceType.MeshSet);
 
             // Update new meshset
             MeshSet newMeshSet = App.AssetManager.GetResAs<MeshSet>(newResEntry);
-            newMeshSet.FullName = newName.ToLower();
+            newMeshSet.FullName = newResEntry.Name;
 
             // Duplicate the lod chunks
             foreach (var lod in newMeshSet.Lods)
             {
-                lod.Name = newName.ToLower();
+                lod.Name = newResEntry.Name;
                 if (lod.ChunkId != Guid.Empty)
                 {
                     ChunkAssetEntry lodChunk = App.AssetManager.GetChunkEntry(lod.ChunkId);
@@ -128,7 +131,7 @@ namespace DuplicationPlugin
 
             // Update the ebx
             newRoot.MeshSetResource = newResEntry.ResRid;
-            newRoot.NameHash = (uint)Utils.HashString(newName.ToLower());
+            newRoot.NameHash = (uint)Utils.HashString(newName);
             newEntry.LinkAsset(newResEntry);
 
             if (ProfilesLibrary.DataVersion == (int)ProfileVersion.StarWarsBattlefrontII)
@@ -152,7 +155,7 @@ namespace DuplicationPlugin
 
                 // Duplicate the sbd
                 ResAssetEntry oldShaderBlock = App.AssetManager.GetResEntry(entry.Name.ToLower() + "_mesh/blocks");
-                ResAssetEntry newShaderBlock = DuplicateRes(oldShaderBlock, newName.ToLower() + "_mesh/blocks", ResourceType.ShaderBlockDepot);
+                ResAssetEntry newShaderBlock = DuplicateRes(oldShaderBlock, newResEntry.Name + "_mesh/blocks", ResourceType.ShaderBlockDepot);
                 ShaderBlockDepot newShaderBlockDepot = App.AssetManager.GetResAs<ShaderBlockDepot>(newShaderBlock);
                 
                 // TODO: hacky way to generate unique hashes
@@ -406,11 +409,14 @@ namespace DuplicationPlugin
 
         public override EbxAssetEntry DuplicateAsset(EbxAssetEntry entry, string newName, bool createNew, Type newType)
         {
+            // BlueprintBundles always have lower case names
+            newName = newName.ToLower();
+
             // Duplicate the ebx
             EbxAssetEntry newEntry = base.DuplicateAsset(entry, newName, createNew, newType);
 
             // Add new bundle
-            BundleEntry newBundle = App.AssetManager.AddBundle("win32/" + newName.ToLower(), BundleType.BlueprintBundle, 0);
+            BundleEntry newBundle = App.AssetManager.AddBundle("win32/" + newName, BundleType.BlueprintBundle, 0);
 
             newEntry.AddedBundles.Clear();
             newEntry.AddedBundles.Add(App.AssetManager.GetBundleId(newBundle));
@@ -473,21 +479,25 @@ namespace DuplicationPlugin
                 else
                     App.Logger.Log("Randomised onto old guid: " + random.ToString());
             }
-            Guid newGuid = App.AssetManager.AddChunk(((MemoryStream)App.AssetManager.GetChunk(entry)).ToArray(), new Guid(random), texture, entry.EnumerateBundles().ToArray());
+            Guid newGuid;
+            using (NativeReader reader = new NativeReader(App.AssetManager.GetChunk(entry)))
+                newGuid = App.AssetManager.AddChunk(reader.ReadToEnd(), new Guid(random), texture, entry.EnumerateBundles().ToArray());
             App.Logger.Log(string.Format("Duped chunk {0} to {1}", entry.Name, newGuid));
             return newGuid;
         }
-        public static ResAssetEntry DuplicateRes(ResAssetEntry entry, string Name, ResourceType resType)
+        public static ResAssetEntry DuplicateRes(ResAssetEntry entry, string name, ResourceType resType)
         {
-            if (App.AssetManager.GetResEntry(Name) == null)
+            if (App.AssetManager.GetResEntry(name) == null)
             {
-                ResAssetEntry newEntry = App.AssetManager.AddRes(Name, resType, entry.ResMeta, ((MemoryStream)App.AssetManager.GetRes(entry)).ToArray(), entry.EnumerateBundles().ToArray());
+                ResAssetEntry newEntry;
+                using (NativeReader reader = new NativeReader(App.AssetManager.GetRes(entry)))
+                    newEntry = App.AssetManager.AddRes(name, resType, entry.ResMeta, reader.ReadToEnd(), entry.EnumerateBundles().ToArray());
                 App.Logger.Log(string.Format("Duped res {0} to {1}", entry.Name, newEntry.Name));
                 return newEntry;
             }
             else
             {
-                App.Logger.Log(Name + " already has a res files");
+                App.Logger.Log(name + " already has a res files");
                 return null;
             }
         }
