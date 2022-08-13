@@ -64,9 +64,12 @@ namespace FrostyEditor
             PluginManager = new PluginManager(App.Logger, PluginManagerType.Editor);
             ProfilesLibrary.Initialize(PluginManager.Profiles);
 
+            
+#if !FROSTY_DEVELOPER
             // for displaying exception box on all unhandled exceptions
             DispatcherUnhandledException += App_DispatcherUnhandledException;
             Exit += Application_Exit;
+#endif
 
             string BuildDate = FrostyEditor.Properties.Resources.BuildDate;
             BuildDate = BuildDate.Substring(BuildDate.IndexOf(' ') + 1);
