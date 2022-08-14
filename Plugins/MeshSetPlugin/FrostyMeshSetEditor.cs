@@ -699,7 +699,7 @@ namespace MeshSetPlugin
                 {
                     FbxNode actor = FBXExportSubObject(scene, section, lod.VertexBufferSize, indexSize, reader);
                     if (flattenHierarchy)
-                        actor.Name = lod.ShortName + ":" + section.Name;
+                        actor.Name = $"{section.Name}:{lod.ShortName.Insert(lod.ShortName.Length - 1, ".00")}";
                     meshNode.AddChild(actor);
 
                     if ((lod.Type == MeshType.MeshType_Skinned || lod.Type == MeshType.MeshType_Composite) && boneNodes.Count > 0)
@@ -1595,8 +1595,7 @@ namespace MeshSetPlugin
                     {
                         if (nodeName.Contains(":"))
                         {
-                            // flat hierarchy, contains lod:section names
-                            nodeName = nodeName.Remove(nodeName.IndexOf(':'));
+                            // flat hierarchy, contains section:lod names
                             nodeName = nodeName.Substring(nodeName.Length - 1);
                             int lodIndex = -1;
 
@@ -1741,7 +1740,7 @@ namespace MeshSetPlugin
                 if (sectionName.Contains(':'))
                 {
                     // remove the lod portion of the name
-                    sectionName = sectionName.Remove(0, sectionName.IndexOf(':') + 1);
+                    sectionName = sectionName.Remove(sectionName.IndexOf(':'));
                 }
 
                 int idx = meshSections.FindIndex((a) => a.Name == sectionName);

@@ -187,6 +187,11 @@ namespace FrostyEditor.Windows
         }
         private void LoadDataExplorerMenuItemExtensions()
         {
+            if (App.PluginManager.DataExplorerContextMenuExtensions.Count() > 0)
+            {
+                dataExplorer.AssetContextMenu.Items.Add(new Separator());
+            }
+            
             foreach (DataExplorerContextMenuExtension contextItemExtension in App.PluginManager.DataExplorerContextMenuExtensions)
             {
                 MenuItem contextMenuItem = new MenuItem
@@ -785,8 +790,11 @@ namespace FrostyEditor.Windows
 
         private void RemoveTab(FrostyTabItem ti)
         {
+            // execute closed on FrostyBaseEditor and FrostyAssetEditor
             FrostyBaseEditor editor = ti.Content as FrostyBaseEditor;
             editor?.Closed();
+            FrostyAssetEditor assetEditor = ti.Content as FrostyAssetEditor;
+            assetEditor?.Closed();
 
             TabControl.Items.Remove(ti);
             if (TabControl.Items.Count == 1)
