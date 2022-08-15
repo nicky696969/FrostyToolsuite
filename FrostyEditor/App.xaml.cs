@@ -38,15 +38,15 @@ namespace FrostyEditor
         public static long StartTime;
 
         public static bool OpenProject {
-            get => openProject;
-            set => openProject = value;
+            get => m_openProject;
+            set => m_openProject = value;
         }
 
         public static string LaunchArgs { get; private set; }
 
-        private static bool openProject;
+        private static bool m_openProject;
 
-        private FrostyConfiguration defaultConfig;
+        private FrostyConfiguration m_defaultConfig;
 
         public App()
         {
@@ -66,10 +66,12 @@ namespace FrostyEditor
             ProfilesLibrary.Initialize(PluginManager.Profiles);
 
             NotificationManager = new NotificationManager();
-
+            
+#if !FROSTY_DEVELOPER
             // for displaying exception box on all unhandled exceptions
             DispatcherUnhandledException += App_DispatcherUnhandledException;
             Exit += Application_Exit;
+#endif
 
             string BuildDate = FrostyEditor.Properties.Resources.BuildDate;
             BuildDate = BuildDate.Substring(BuildDate.IndexOf(' ') + 1);
@@ -138,7 +140,7 @@ namespace FrostyEditor
             return null;
         }
 
-        public static void UpdateDiscordRPC(string state)
+        public static void UpdateDiscordRpc(string state)
         {
             if (!Config.Get<bool>("DiscordRPCEnabled", false))
                 return;
@@ -169,7 +171,7 @@ namespace FrostyEditor
             DiscordRPC.Discord_UpdatePresence(ref discordPresence);
         }
 
-        public static void InitDiscordRPC()
+        public static void InitDiscordRpc()
         {
             if (Config.Get<bool>("DiscordRPCEnabled", false))
             {
@@ -191,19 +193,25 @@ namespace FrostyEditor
         private void Application_Startup(object sender, StartupEventArgs e)
         {
             if (!File.Exists($"{Frosty.Core.App.GlobalSettingsPath}/editor_config.json"))
+            {
                 Config.UpgradeConfigs();
+            }
 
             Config.Load();
 
             if (Config.Get<bool>("UpdateCheck", true) || Config.Get<bool>("UpdateCheckPrerelease", false))
+            {
                 CheckVersion();
+            }
 
             // get startup profile (if one exists)
             if (Config.Get<bool>("UseDefaultProfile", false))
             {
                 string prof = Config.Get<string>("DefaultProfile", null);
                 if (!string.IsNullOrEmpty(prof))
-                    defaultConfig = new FrostyConfiguration(prof);
+                {
+                    m_defaultConfig = new FrostyConfiguration(prof);
+                }
                 else
                 {
                     Config.Add("UseDefaultProfile", false);
@@ -214,32 +222,21 @@ namespace FrostyEditor
             //check args to see if it is loading a project
             if (e.Args.Length > 0) {
                 string arg = e.Args[0];
-                if (arg.Contains(".fbproject")) {
-                    openProject = true;
+                if (arg.Contains(".fbproject"))
+                {
+                    m_openProject = true;
                     LaunchArgs = arg;
                 }
-            }
-
-            if (defaultConfig != null)
-            {
-                // load profile
-                if (!ProfilesLibrary.Initialize(defaultConfig.ProfileName))
-                {
-                    FrostyMessageBox.Show("There was an error when trying to load game using specified profile.", "Frosty Editor");
-                    return;
-                }
-
-                this.StartupUri = new System.Uri("/FrostyEditor;component/Windows/SplashWindow.xaml", System.UriKind.Relative);
-
-                App.InitDiscordRPC();
-                App.UpdateDiscordRPC("Loading...");
             }
         }
 
         private void Application_Exit(object sender, ExitEventArgs e)
         {
+            // disable DiscordRPC
             if (Config.Current != null && Config.Get<bool>("DiscordRPCEnabled", false))
+            {
                 DiscordRPC.Discord_Shutdown();
+            }
         }
 
         private void CheckVersion()
