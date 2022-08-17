@@ -133,6 +133,12 @@ namespace Frosty.Core.Windows
         [EbxFieldMeta(EbxFieldType.Int32)]
         public int ApplyingThreadCount { get; set; } = Environment.ProcessorCount;
 
+        [Category("Applying")]
+        [DisplayName("CAS Max File Size")]
+        [Description("Change the maximum size of written cas files when applying mods.\r\n\r\nHigher Values decrease system stability but ensure mod compatibility.")]
+        [EbxFieldMeta(EbxFieldType.Struct)]
+        public CustomComboData<string, string> MaxCasFileSize { get; set; }
+
         public override void Load()
         {
             List<string> langs = GetLocalizedLanguages();
@@ -155,6 +161,10 @@ namespace Frosty.Core.Windows
             UpdateCheckPrerelease = Config.Get<bool>("UpdateCheckPrerelease", false);
 
             ApplyingThreadCount = Config.Get<int>("ApplyingThreadCount", Environment.ProcessorCount);
+
+            List<string> sizes = new List<string>() { "1GB", "512MB", "256MB" };
+            MaxCasFileSize = new CustomComboData<string, string>(sizes, sizes);
+            MaxCasFileSize.SelectedIndex = sizes.IndexOf(Config.Get<string>("MaxCasFileSize", "512MB"));
 
             //Checks the registry for the current association instead of loading from config
             string KeyName = "frostyproject";
@@ -204,6 +214,7 @@ namespace Frosty.Core.Windows
             Config.Add("UpdateCheckPrerelease", UpdateCheckPrerelease);
 
             Config.Add("ApplyingThreadCount", ApplyingThreadCount);
+            Config.Add("MaxCasFileSize", MaxCasFileSize.SelectedName);
 
             if (RememberChoice)
                 Config.Add("DefaultProfile", ProfilesLibrary.ProfileName);
@@ -345,6 +356,13 @@ namespace Frosty.Core.Windows
         [EbxFieldMeta(EbxFieldType.Int32)]
         public int ApplyingThreadCount { get; set; } = Environment.ProcessorCount;
 
+        [Category("Applying")]
+        [DisplayName("CAS Max File Size")]
+        [Description("Change the maximum size of written cas files when applying mods.\r\n\r\nHigher Values decrease system stability but ensure mod compatibility.")]
+        [EbxFieldMeta(EbxFieldType.Struct)]
+        [Editor(typeof(FrostyLocalizationLanguageDataEditor))]
+        public CustomComboData<string, string> MaxCasFileSize { get; set; }
+
         public override void Load()
         {
             RememberChoice = Config.Get<bool>("UseDefaultProfile", false);
@@ -355,6 +373,10 @@ namespace Frosty.Core.Windows
             UpdateCheckPrerelease = Config.Get<bool>("UpdateCheckPrerelease", false);
 
             ApplyingThreadCount = Config.Get<int>("ApplyingThreadCount", Environment.ProcessorCount);
+
+            List<string> sizes = new List<string>() { "1GB", "512MB", "256MB" };
+            MaxCasFileSize = new CustomComboData<string, string>(sizes, sizes);
+            MaxCasFileSize.SelectedIndex = sizes.IndexOf(Config.Get<string>("MaxCasFileSize", "512MB"));
         }
 
         public override void Save()
@@ -367,6 +389,7 @@ namespace Frosty.Core.Windows
             Config.Add("UpdateCheckPrerelease", UpdateCheckPrerelease);
 
             Config.Add("ApplyingThreadCount", ApplyingThreadCount);
+            Config.Add("MaxCasFileSize", MaxCasFileSize.SelectedName);
 
             if (RememberChoice)
                 Config.Add("DefaultProfile", ProfilesLibrary.ProfileName);
