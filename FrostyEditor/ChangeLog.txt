@@ -13,6 +13,9 @@ It is prohibited to redistribute this build.
 - Fix Mesh Naming in MeshSetPlugin (Upcoming 1.0.6)
 - UI changes
 
+Build 8/17/20
+- Max Cas Size option to improve system stability while applying mods
+
 v1.0.6
 --------
 - Added plugin support
