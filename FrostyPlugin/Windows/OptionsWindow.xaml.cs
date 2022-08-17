@@ -137,6 +137,7 @@ namespace Frosty.Core.Windows
         [DisplayName("CAS Max File Size")]
         [Description("Change the maximum size of written cas files when applying mods.\r\n\r\nHigher Values decrease system stability but ensure mod compatibility.")]
         [EbxFieldMeta(EbxFieldType.Struct)]
+        [Editor(typeof(FrostyLocalizationLanguageDataEditor))]
         public CustomComboData<string, string> MaxCasFileSize { get; set; }
 
         public override void Load()
