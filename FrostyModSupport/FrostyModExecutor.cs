@@ -1098,7 +1098,7 @@ namespace Frosty.ModSupport
                         currentMod++;
                         logger.Log("progress:" + (currentMod / (float)totalMods) * 100d);
                     }
-                    if (fi.Exists && fi.FullName.Contains(".fbcollection"))
+                    else if (fi.Exists && fi.FullName.Contains(".fbcollection"))
                     {
                         FrostyModCollection fcollection = new FrostyModCollection(fi.FullName);
                         if (fcollection.IsValid)
@@ -1190,6 +1190,7 @@ namespace Frosty.ModSupport
                     });
 
                 // process any new resources added during custom handler modification
+                Logger.Log("Processing Handlers");
                 ProcessModResources(runtimeResources);
 
                 cancelToken.ThrowIfCancellationRequested();
