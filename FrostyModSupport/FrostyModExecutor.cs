@@ -7,11 +7,13 @@ using FrostySdk.Interfaces;
 using FrostySdk.IO;
 using FrostySdk.Managers;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Frosty.ModSupport
 {
@@ -156,7 +158,7 @@ namespace Frosty.ModSupport
         private Dictionary<string, ResAssetEntry> modifiedRes = new Dictionary<string, ResAssetEntry>();
         private Dictionary<Guid, ChunkAssetEntry> modifiedChunks = new Dictionary<Guid, ChunkAssetEntry>();
 
-        private Dictionary<Sha1, ArchiveInfo> archiveData = new Dictionary<Sha1, ArchiveInfo>();
+        private ConcurrentDictionary<Sha1, ArchiveInfo> archiveData = new ConcurrentDictionary<Sha1, ArchiveInfo>();
         private int numArchiveEntries = 0;
         private int numTasks;
 
@@ -273,7 +275,7 @@ namespace Frosty.ModSupport
 
                                     archiveData[existingEntry.Sha1].RefCount--;
                                     if (archiveData[existingEntry.Sha1].RefCount == 0)
-                                        archiveData.Remove(existingEntry.Sha1);
+                                        archiveData.TryRemove(existingEntry.Sha1, out _);
 
                                     modifiedEbx.Remove(resource.Name);
                                     numArchiveEntries--;
@@ -306,7 +308,7 @@ namespace Frosty.ModSupport
 
                                 modifiedEbx.Add(entry.Name, entry);
                                 if (!archiveData.ContainsKey(entry.Sha1))
-                                    archiveData.Add(entry.Sha1, new ArchiveInfo() { Data = data, RefCount = 1 });
+                                    archiveData.TryAdd(entry.Sha1, new ArchiveInfo() { Data = data, RefCount = 1 });
                                 else
                                     archiveData[entry.Sha1].RefCount++;
                                 numArchiveEntries++;
@@ -368,7 +370,7 @@ namespace Frosty.ModSupport
 
                                     archiveData[existingEntry.Sha1].RefCount--;
                                     if (archiveData[existingEntry.Sha1].RefCount == 0)
-                                        archiveData.Remove(existingEntry.Sha1);
+                                        archiveData.TryRemove(existingEntry.Sha1, out _);
 
                                     modifiedRes.Remove(resource.Name);
                                     numArchiveEntries--;
@@ -404,7 +406,7 @@ namespace Frosty.ModSupport
 
                                 modifiedRes.Add(entry.Name, entry);
                                 if (!archiveData.ContainsKey(entry.Sha1))
-                                    archiveData.Add(entry.Sha1, new ArchiveInfo() { Data = data, RefCount = 1 });
+                                    archiveData.TryAdd(entry.Sha1, new ArchiveInfo() { Data = data, RefCount = 1 });
                                 else
                                     archiveData[entry.Sha1].RefCount++;
                                 numArchiveEntries++;
@@ -473,7 +475,7 @@ namespace Frosty.ModSupport
 
                                     archiveData[existingEntry.Sha1].RefCount--;
                                     if (archiveData[existingEntry.Sha1].RefCount == 0)
-                                        archiveData.Remove(existingEntry.Sha1);
+                                        archiveData.TryRemove(existingEntry.Sha1, out _);
 
                                     modifiedChunks.Remove(guid);
                                     numArchiveEntries--;
@@ -562,7 +564,7 @@ namespace Frosty.ModSupport
 
                                 modifiedChunks.Add(guid, entry);
                                 if (!archiveData.ContainsKey(entry.Sha1))
-                                    archiveData.Add(entry.Sha1, new ArchiveInfo() { Data = data, RefCount = 1 });
+                                    archiveData.TryAdd(entry.Sha1, new ArchiveInfo() { Data = data, RefCount = 1 });
                                 else
                                     archiveData[entry.Sha1].RefCount++;
                                 numArchiveEntries++;
@@ -870,7 +872,7 @@ namespace Frosty.ModSupport
 
                                                 archiveData[existingEntry.Sha1].RefCount--;
                                                 if (archiveData[existingEntry.Sha1].RefCount == 0)
-                                                    archiveData.Remove(existingEntry.Sha1);
+                                                    archiveData.TryRemove(existingEntry.Sha1, out _);
 
                                                 modifiedEbx.Remove(name);
                                                 numArchiveEntries--;
@@ -905,7 +907,7 @@ namespace Frosty.ModSupport
 
                                             modifiedEbx.Add(entry.Name, entry);
                                             if (!archiveData.ContainsKey(entry.Sha1))
-                                                archiveData.Add(entry.Sha1, new ArchiveInfo() { Data = buffer, RefCount = 1 });
+                                                archiveData.TryAdd(entry.Sha1, new ArchiveInfo() { Data = buffer, RefCount = 1 });
                                             else
                                                 archiveData[entry.Sha1].RefCount++;
                                             numArchiveEntries++;
@@ -922,7 +924,7 @@ namespace Frosty.ModSupport
 
                                                 archiveData[existingEntry.Sha1].RefCount--;
                                                 if (archiveData[existingEntry.Sha1].RefCount == 0)
-                                                    archiveData.Remove(existingEntry.Sha1);
+                                                    archiveData.TryRemove(existingEntry.Sha1, out _);
 
                                                 modifiedRes.Remove(name);
                                                 numArchiveEntries--;
@@ -960,7 +962,7 @@ namespace Frosty.ModSupport
 
                                             modifiedRes.Add(entry.Name, entry);
                                             if (!archiveData.ContainsKey(entry.Sha1))
-                                                archiveData.Add(entry.Sha1, new ArchiveInfo() { Data = buffer, RefCount = 1 });
+                                                archiveData.TryAdd(entry.Sha1, new ArchiveInfo() { Data = buffer, RefCount = 1 });
                                             else
                                                 archiveData[entry.Sha1].RefCount++;
                                             numArchiveEntries++;
@@ -1009,7 +1011,7 @@ namespace Frosty.ModSupport
 
                                                 archiveData[existingEntry.Sha1].RefCount--;
                                                 if (archiveData[existingEntry.Sha1].RefCount == 0)
-                                                    archiveData.Remove(existingEntry.Sha1);
+                                                    archiveData.TryRemove(existingEntry.Sha1, out _);
 
                                                 modifiedChunks.Remove(chunkId);
                                                 numArchiveEntries--;
@@ -1082,7 +1084,7 @@ namespace Frosty.ModSupport
 
                                             modifiedChunks.Add(entry.Id, entry);
                                             if (!archiveData.ContainsKey(entry.Sha1))
-                                                archiveData.Add(entry.Sha1, new ArchiveInfo() { Data = buffer, RefCount = 1 });
+                                                archiveData.TryAdd(entry.Sha1, new ArchiveInfo() { Data = buffer, RefCount = 1 });
                                             else
                                                 archiveData[entry.Sha1].RefCount++;
                                             numArchiveEntries++;
@@ -1197,7 +1199,7 @@ namespace Frosty.ModSupport
 
                                         archiveData[existingEntry.Sha1].RefCount--;
                                         if (archiveData[existingEntry.Sha1].RefCount == 0)
-                                            archiveData.Remove(existingEntry.Sha1);
+                                            archiveData.TryRemove(existingEntry.Sha1, out _);
 
                                         modifiedEbx.Remove(name);
                                         numArchiveEntries--;
@@ -1232,7 +1234,7 @@ namespace Frosty.ModSupport
 
                                     modifiedEbx.Add(entry.Name, entry);
                                     if (!archiveData.ContainsKey(entry.Sha1))
-                                        archiveData.Add(entry.Sha1, new ArchiveInfo() { Data = buffer, RefCount = 1 });
+                                        archiveData.TryAdd(entry.Sha1, new ArchiveInfo() { Data = buffer, RefCount = 1 });
                                     else
                                         archiveData[entry.Sha1].RefCount++;
                                     numArchiveEntries++;
@@ -1249,7 +1251,7 @@ namespace Frosty.ModSupport
 
                                         archiveData[existingEntry.Sha1].RefCount--;
                                         if (archiveData[existingEntry.Sha1].RefCount == 0)
-                                            archiveData.Remove(existingEntry.Sha1);
+                                            archiveData.TryRemove(existingEntry.Sha1, out _);
 
                                         modifiedRes.Remove(name);
                                         numArchiveEntries--;
@@ -1287,7 +1289,7 @@ namespace Frosty.ModSupport
 
                                     modifiedRes.Add(entry.Name, entry);
                                     if (!archiveData.ContainsKey(entry.Sha1))
-                                        archiveData.Add(entry.Sha1, new ArchiveInfo() { Data = buffer, RefCount = 1 });
+                                        archiveData.TryAdd(entry.Sha1, new ArchiveInfo() { Data = buffer, RefCount = 1 });
                                     else
                                         archiveData[entry.Sha1].RefCount++;
                                     numArchiveEntries++;
@@ -1336,7 +1338,7 @@ namespace Frosty.ModSupport
 
                                         archiveData[existingEntry.Sha1].RefCount--;
                                         if (archiveData[existingEntry.Sha1].RefCount == 0)
-                                            archiveData.Remove(existingEntry.Sha1);
+                                            archiveData.TryRemove(existingEntry.Sha1, out _);
 
                                         modifiedChunks.Remove(chunkId);
                                         numArchiveEntries--;
@@ -1409,7 +1411,7 @@ namespace Frosty.ModSupport
 
                                     modifiedChunks.Add(entry.Id, entry);
                                     if (!archiveData.ContainsKey(entry.Sha1))
-                                        archiveData.Add(entry.Sha1, new ArchiveInfo() { Data = buffer, RefCount = 1 });
+                                        archiveData.TryAdd(entry.Sha1, new ArchiveInfo() { Data = buffer, RefCount = 1 });
                                     else
                                         archiveData[entry.Sha1].RefCount++;
                                     numArchiveEntries++;
@@ -1446,60 +1448,65 @@ namespace Frosty.ModSupport
                 int currentResource = 0;
 
                 RuntimeResources runtimeResources = new RuntimeResources();
-                foreach (var entry in modifiedEbx.Values)
-                {
-                    Logger.Log($"Applying handlers ({entry.Filename})");
 
-                    if (entry.ExtraData is HandlerExtraData handlerExtaData)
-                    {
-                        handlerExtaData.Handler.Modify(entry, am, runtimeResources, handlerExtaData.Data, out byte[] data);
+                Parallel.Invoke(
+                    () => {
+                        Parallel.ForEach(modifiedEbx.Values, entry =>
+                        {
+                            Logger.Log($"Applying handlers ({entry.Filename})");
 
-                        if (!archiveData.ContainsKey(entry.Sha1))
-                            archiveData.Add(entry.Sha1, new ArchiveInfo() { Data = data, RefCount = 1 });
-                        else
-                            archiveData[entry.Sha1].RefCount++;
-                    }
+                            if (entry.ExtraData is HandlerExtraData handlerExtaData) {
+                                handlerExtaData.Handler.Modify(entry, am, runtimeResources, handlerExtaData.Data, out byte[] data);
 
-                    currentResource++;
-                    uint progress = (uint)((currentResource / (float)totalResources) * 100);
-                    logger.Log("progress:" + progress);
-                }
-                foreach (var entry in modifiedRes.Values)
-                {
-                    Logger.Log($"Applying handlers ({entry.Filename})");
+                                if (!archiveData.ContainsKey(entry.Sha1))
+                                    archiveData.TryAdd(entry.Sha1, new ArchiveInfo() { Data = data, RefCount = 1 });
+                                else
+                                    archiveData[entry.Sha1].RefCount++;
+                            }
 
-                    if (entry.ExtraData is HandlerExtraData handlerExtaData)
-                    {
-                        handlerExtaData.Handler.Modify(entry, am, runtimeResources, handlerExtaData.Data, out byte[] data);
+                            currentResource++;
+                            uint progress = (uint)((currentResource / (float)totalResources) * 100);
+                            logger.Log("progress:" + progress);
+                        });
+                    },
+                    () => {
+                        Parallel.ForEach(modifiedRes.Values, entry =>
+                        {
+                            Logger.Log($"Applying handlers ({entry.Filename})");
 
-                        if (!archiveData.ContainsKey(entry.Sha1))
-                            archiveData.Add(entry.Sha1, new ArchiveInfo() { Data = data, RefCount = 1 });
-                        else
-                            archiveData[entry.Sha1].RefCount++;
-                    }
+                            if (entry.ExtraData is HandlerExtraData handlerExtaData) {
+                                handlerExtaData.Handler.Modify(entry, am, runtimeResources, handlerExtaData.Data, out byte[] data);
 
-                    currentResource++;
-                    uint progress = (uint)((currentResource / (float)totalResources) * 100);
-                    logger.Log("progress:" + progress);
-                }
-                foreach (var entry in modifiedChunks.Values)
-                {
-                    Logger.Log($"Applying handlers ({entry.Filename})");
+                                if (!archiveData.ContainsKey(entry.Sha1))
+                                    archiveData.TryAdd(entry.Sha1, new ArchiveInfo() { Data = data, RefCount = 1 });
+                                else
+                                    archiveData[entry.Sha1].RefCount++;
+                            }
 
-                    if (entry.ExtraData is HandlerExtraData handlerExtaData)
-                    {
-                        handlerExtaData.Handler.Modify(entry, am, runtimeResources, handlerExtaData.Data, out byte[] data);
+                            currentResource++;
+                            uint progress = (uint)((currentResource / (float)totalResources) * 100);
+                            logger.Log("progress:" + progress);
+                        });
+                    },
+                    () => {
+                        Parallel.ForEach(modifiedChunks.Values, entry =>
+                        {
+                            Logger.Log($"Applying handlers ({entry.Filename})");
 
-                        if (!archiveData.ContainsKey(entry.Sha1))
-                            archiveData.Add(entry.Sha1, new ArchiveInfo() { Data = data, RefCount = 1 });
-                        else
-                            archiveData[entry.Sha1].RefCount++;
-                    }
+                            if (entry.ExtraData is HandlerExtraData handlerExtaData) {
+                                handlerExtaData.Handler.Modify(entry, am, runtimeResources, handlerExtaData.Data, out byte[] data);
 
-                    currentResource++;
-                    uint progress = (uint)((currentResource / (float)totalResources) * 100);
-                    logger.Log("progress:" + progress);
-                }
+                                if (!archiveData.ContainsKey(entry.Sha1))
+                                    archiveData.TryAdd(entry.Sha1, new ArchiveInfo() { Data = data, RefCount = 1 });
+                                else
+                                    archiveData[entry.Sha1].RefCount++;
+                            }
+
+                            currentResource++;
+                            uint progress = (uint)((currentResource / (float)totalResources) * 100);
+                            logger.Log("progress:" + progress);
+                        });
+                    });
 
                 // process any new resources added during custom handler modification
                 ProcessModResources(runtimeResources);
@@ -1851,7 +1858,7 @@ namespace Frosty.ModSupport
                             for (int i = 0; i < completedAction.BundleRefs.Count; i++)
                             {
                                 if (!archiveData.ContainsKey(completedAction.BundleRefs[i]))
-                                    archiveData.Add(completedAction.BundleRefs[i], new ArchiveInfo() { Data = completedAction.BundleBuffers[i] });
+                                    archiveData.TryAdd(completedAction.BundleRefs[i], new ArchiveInfo() { Data = completedAction.BundleBuffers[i] });
                             }
 
                             // add refs to be added to cas (and manifest)
@@ -2066,7 +2073,7 @@ namespace Frosty.ModSupport
 
                         Sha1 sha1 = Utils.GenerateSha1(tmpBuf);
 
-                        archiveData.Add(sha1, new ArchiveInfo() { Data = tmpBuf });
+                        archiveData.TryAdd(sha1, new ArchiveInfo() { Data = tmpBuf });
                         WriteArchiveData(modPath + patchPath + "/" + catalog, new CasDataEntry("", sha1));
 
                         manifest.SetValue("size", tmpBuf.Length);
