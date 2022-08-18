@@ -603,7 +603,7 @@ namespace FrostySdk.Managers
             }
 
             TimeSpan ElapsedTime = DateTime.Now - StartTime;
-            WriteToLog("Loading complete", ElapsedTime.ToString());
+            WriteToLog("Loading Complete", ElapsedTime.ToString());
 
             if (additionalStartup)
             {
@@ -639,7 +639,7 @@ namespace FrostySdk.Managers
                     result.InvalidatedDueToPatch = prePatchCache != null;
                     if (prePatchCache != null)
                     {
-                        WriteToLog("Processing patch results");
+                        WriteToLog("Processing Patch Results");
 
                         List<Guid> foundObjs = new List<Guid>();
                         List<EbxAssetEntry> modifiedObjs = new List<EbxAssetEntry>();
@@ -691,7 +691,7 @@ namespace FrostySdk.Managers
                     )
                 {
                     // load class infos
-                    WriteToLog("Loading type info");
+                    WriteToLog("Loading Type Info");
                     TypeLibrary.Reflection.LoadClassInfoAssets(this);
                 }
             }
@@ -793,7 +793,7 @@ namespace FrostySdk.Managers
                 }
 
                 count++;
-                WriteToLog("Initial load - Indexing data ({0}%)", (int)((count / (double)assetCount) * 100.0));
+                WriteToLog("Initial Load - Indexing Data ({0}%)", (int)((count / (double)assetCount) * 100.0));
                 WriteToLog("progress:{0}", ((count / (double)assetCount) * 100.0d));
             }
 
@@ -802,7 +802,7 @@ namespace FrostySdk.Managers
             ebxToRemove.Clear();
 
             WriteToCache();
-            WriteToLog("Initial load - Indexing complete");
+            WriteToLog("Initial Load - Indexing Complete");
         }
 
         public uint GetModifiedCount()
@@ -1981,7 +1981,7 @@ namespace FrostySdk.Managers
             if (!File.Exists(fs.CacheName + ".cache"))
                 return false;
 
-            WriteToLog("Loading data (" + fs.CacheName + ".cache)");
+            WriteToLog("Loading Data (" + fs.CacheName + ".cache)");
             bool bIsPatched = false;
 
             using (NativeReader reader = new NativeReader(new FileStream(fs.CacheName + ".cache", FileMode.Open, FileAccess.Read)))
