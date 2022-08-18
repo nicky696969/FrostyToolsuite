@@ -759,6 +759,7 @@ namespace Frosty.ModSupport
 
                 cancelToken.ThrowIfCancellationRequested();
                 Logger.Log("Loading mods");
+                App.Logger.Log("Loading mods");
 
                 foreach (string path in modPaths)
                 {
@@ -1438,6 +1439,7 @@ namespace Frosty.ModSupport
                 }
 
                 Logger.Log("Applying handlers");
+                App.Logger.Log("Applying handlers");
 
                 // apply handlers
                 int totalResources = modifiedEbx.Count + modifiedRes.Count + modifiedChunks.Count;
@@ -1504,6 +1506,7 @@ namespace Frosty.ModSupport
 
                 cancelToken.ThrowIfCancellationRequested();
                 Logger.Log("Cleaning up mod data directory");
+                App.Logger.Log("Cleaning up mod data directory");
 
                 List<SymLinkStruct> cmdArgs = new List<SymLinkStruct>();
                 bool newInstallation = false;
@@ -1643,6 +1646,7 @@ namespace Frosty.ModSupport
                 // modify tocs and sbs
                 cancelToken.ThrowIfCancellationRequested();
                 Logger.Log("Applying mods");
+                App.Logger.Log("Applying mods");
 
                 cmdArgs.Clear();
 
