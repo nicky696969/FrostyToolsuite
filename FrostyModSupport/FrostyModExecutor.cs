@@ -34,18 +34,27 @@ namespace Frosty.ModSupport
 
                 public void AddEbx(string name)
                 {
-                    if (!Ebx.Contains(name))
-                        Ebx.Add(name);
+                    lock (Ebx)
+                    {
+                        if (!Ebx.Contains(name))
+                            Ebx.Add(name);
+                    }
                 }
                 public void AddRes(string name)
                 {
-                    if (!Res.Contains(name))
-                        Res.Add(name);
+                    lock (Res)
+                    {
+                        if (!Res.Contains(name))
+                            Res.Add(name);
+                    }
                 }
                 public void AddChunk(Guid guid)
                 {
-                    if (!Chunks.Contains(guid))
-                        Chunks.Add(guid);
+                    lock (Chunks)
+                    {
+                        if (!Chunks.Contains(guid))
+                            Chunks.Add(guid);
+                    }
                 }
             }
             public int Name;
@@ -151,12 +160,12 @@ namespace Frosty.ModSupport
 
         private List<string> addedSuperBundles = new List<string>();
 
-        private Dictionary<int, ModBundleInfo> modifiedBundles = new Dictionary<int, ModBundleInfo>();
-        private Dictionary<int, List<string>> addedBundles = new Dictionary<int, List<string>>();
+        private ConcurrentDictionary<int, ModBundleInfo> modifiedBundles = new ConcurrentDictionary<int, ModBundleInfo>();
+        private ConcurrentDictionary<int, List<string>> addedBundles = new ConcurrentDictionary<int, List<string>>();
 
-        private Dictionary<string, EbxAssetEntry> modifiedEbx = new Dictionary<string, EbxAssetEntry>();
-        private Dictionary<string, ResAssetEntry> modifiedRes = new Dictionary<string, ResAssetEntry>();
-        private Dictionary<Guid, ChunkAssetEntry> modifiedChunks = new Dictionary<Guid, ChunkAssetEntry>();
+        private ConcurrentDictionary<string, EbxAssetEntry> modifiedEbx = new ConcurrentDictionary<string, EbxAssetEntry>();
+        private ConcurrentDictionary<string, ResAssetEntry> modifiedRes = new ConcurrentDictionary<string, ResAssetEntry>();
+        private ConcurrentDictionary<Guid, ChunkAssetEntry> modifiedChunks = new ConcurrentDictionary<Guid, ChunkAssetEntry>();
 
         private ConcurrentDictionary<Sha1, ArchiveInfo> archiveData = new ConcurrentDictionary<Sha1, ArchiveInfo>();
         private int numArchiveEntries = 0;
@@ -201,9 +210,10 @@ namespace Frosty.ModSupport
 
             return hash;
         }
+
         private void ProcessModResources(IResourceContainer fmod)
         {
-            foreach (BaseModResource resource in fmod.Resources)
+            Parallel.ForEach(fmod.Resources, resource =>
             {
                 //try
                 {
@@ -215,8 +225,7 @@ namespace Frosty.ModSupport
                         BundleEntry bentry = new BundleEntry();
                         resource.FillAssetEntry(bentry);
 
-                        if (!addedBundles.ContainsKey(bentry.SuperBundleId))
-                            addedBundles.Add(bentry.SuperBundleId, new List<string>());
+                        addedBundles.TryAdd(bentry.SuperBundleId, new List<string>());
                         addedBundles[bentry.SuperBundleId].Add(bentry.Name);
 
                     }
@@ -255,7 +264,7 @@ namespace Frosty.ModSupport
                                     }
 
                                     entry.ExtraData = extraData;
-                                    modifiedEbx.Add(resource.Name, entry);
+                                    modifiedEbx.TryAdd(resource.Name, entry);
                                 }
 
                                 // merge new and old data together
@@ -269,15 +278,15 @@ namespace Frosty.ModSupport
                                     EbxAssetEntry existingEntry = modifiedEbx[resource.Name];
 
                                     if (existingEntry.ExtraData != null)
-                                        continue;
+                                        return;
                                     if (existingEntry.Sha1 == resource.Sha1)
-                                        continue;
+                                        return;
 
                                     archiveData[existingEntry.Sha1].RefCount--;
                                     if (archiveData[existingEntry.Sha1].RefCount == 0)
                                         archiveData.TryRemove(existingEntry.Sha1, out _);
 
-                                    modifiedEbx.Remove(resource.Name);
+                                    modifiedEbx.TryRemove(resource.Name, out _);
                                     numArchiveEntries--;
                                 }
 
@@ -306,9 +315,9 @@ namespace Frosty.ModSupport
 
                                 entry.Size = data.Length;
 
-                                modifiedEbx.Add(entry.Name, entry);
+                                modifiedEbx.TryAdd(entry.Name, entry);
                                 if (!archiveData.ContainsKey(entry.Sha1))
-                                    archiveData.TryAdd(entry.Sha1, new ArchiveInfo() { Data = data, RefCount = 1 });
+                                    archiveData.GetOrAdd(entry.Sha1, new ArchiveInfo() { Data = data, RefCount = 1 });
                                 else
                                     archiveData[entry.Sha1].RefCount++;
                                 numArchiveEntries++;
@@ -350,7 +359,7 @@ namespace Frosty.ModSupport
                                     }
 
                                     entry.ExtraData = extraData;
-                                    modifiedRes.Add(resource.Name, entry);
+                                    modifiedRes.TryAdd(resource.Name, entry);
                                 }
 
                                 // merge new and old data together
@@ -364,15 +373,15 @@ namespace Frosty.ModSupport
                                     ResAssetEntry existingEntry = modifiedRes[resource.Name];
 
                                     if (existingEntry.ExtraData != null)
-                                        continue;
+                                        return;
                                     if (existingEntry.Sha1 == resource.Sha1)
-                                        continue;
+                                        return;
 
                                     archiveData[existingEntry.Sha1].RefCount--;
                                     if (archiveData[existingEntry.Sha1].RefCount == 0)
                                         archiveData.TryRemove(existingEntry.Sha1, out _);
 
-                                    modifiedRes.Remove(resource.Name);
+                                    modifiedRes.TryRemove(resource.Name, out _);
                                     numArchiveEntries--;
                                 }
 
@@ -404,7 +413,7 @@ namespace Frosty.ModSupport
 
                                 entry.Size = data.Length;
 
-                                modifiedRes.Add(entry.Name, entry);
+                                modifiedRes.TryAdd(entry.Name, entry);
                                 if (!archiveData.ContainsKey(entry.Sha1))
                                     archiveData.TryAdd(entry.Sha1, new ArchiveInfo() { Data = data, RefCount = 1 });
                                 else
@@ -459,7 +468,7 @@ namespace Frosty.ModSupport
                                     }
 
                                     entry.ExtraData = extraData;
-                                    modifiedChunks.Add(guid, entry);
+                                    modifiedChunks.TryAdd(guid, entry);
                                 }
 
                                 // merge new and old data together
@@ -471,13 +480,13 @@ namespace Frosty.ModSupport
                                 {
                                     ChunkAssetEntry existingEntry = modifiedChunks[guid];
                                     if (existingEntry.Sha1 == resource.Sha1)
-                                        continue;
+                                        return;
 
                                     archiveData[existingEntry.Sha1].RefCount--;
                                     if (archiveData[existingEntry.Sha1].RefCount == 0)
                                         archiveData.TryRemove(existingEntry.Sha1, out _);
 
-                                    modifiedChunks.Remove(guid);
+                                    modifiedChunks.TryRemove(guid, out _);
                                     numArchiveEntries--;
                                 }
 
@@ -562,7 +571,7 @@ namespace Frosty.ModSupport
 
                                 entry.Size = data.Length;
 
-                                modifiedChunks.Add(guid, entry);
+                                modifiedChunks.TryAdd(guid, entry);
                                 if (!archiveData.ContainsKey(entry.Sha1))
                                     archiveData.TryAdd(entry.Sha1, new ArchiveInfo() { Data = data, RefCount = 1 });
                                 else
@@ -590,8 +599,7 @@ namespace Frosty.ModSupport
                     // modified bundle actions (these are pulled from the asset manager during applying)
                     foreach (int bundleHash in bundles)
                     {
-                        if (!modifiedBundles.ContainsKey(bundleHash))
-                            modifiedBundles.Add(bundleHash, new ModBundleInfo() { Name = bundleHash });
+                        modifiedBundles.TryAdd(bundleHash, new ModBundleInfo() { Name = bundleHash });
 
                         ModBundleInfo modBundle = modifiedBundles[bundleHash];
                         switch (resource.Type)
@@ -605,8 +613,7 @@ namespace Frosty.ModSupport
                     // add bundle actions (these are stored in the mod)
                     foreach (int bundleHash in resource.AddedBundles)
                     {
-                        if (!modifiedBundles.ContainsKey(bundleHash))
-                            modifiedBundles.Add(bundleHash, new ModBundleInfo() { Name = bundleHash });
+                        modifiedBundles.TryAdd(bundleHash, new ModBundleInfo() { Name = bundleHash });
 
                         ModBundleInfo modBundle = modifiedBundles[bundleHash];
                         switch (resource.Type)
@@ -621,7 +628,7 @@ namespace Frosty.ModSupport
                 //{
 
                 //}
-            }
+            });
         }
 
         public int Run(FileSystem inFs, CancellationToken cancelToken, ILogger inLogger, string rootPath, string modPackName, string additionalArgs, params string[] modPaths)
@@ -810,7 +817,7 @@ namespace Frosty.ModSupport
                                         int resourceId = action.GetValue<int>("resourceId");
 
                                         if (!modifiedBundles.ContainsKey(bundle))
-                                            modifiedBundles.Add(bundle, new ModBundleInfo() { Name = bundle });
+                                            modifiedBundles.TryAdd(bundle, new ModBundleInfo() { Name = bundle });
 
                                         ModBundleInfo modBundle = modifiedBundles[bundle];
                                         DbObject resource = resourceList[resourceId] as DbObject;
@@ -863,7 +870,7 @@ namespace Frosty.ModSupport
 
                                             int hash = Fnv1a.HashString(superBundle.ToLower());
                                             if (!addedBundles.ContainsKey(hash))
-                                                addedBundles.Add(hash, new List<string>());
+                                                addedBundles.TryAdd(hash, new List<string>());
 
                                             addedBundles[hash].Add(name);
                                         }
@@ -881,7 +888,7 @@ namespace Frosty.ModSupport
                                                 if (archiveData[existingEntry.Sha1].RefCount == 0)
                                                     archiveData.TryRemove(existingEntry.Sha1, out _);
 
-                                                modifiedEbx.Remove(name);
+                                                modifiedEbx.TryRemove(name, out _);
                                                 numArchiveEntries--;
                                             }
 
@@ -912,7 +919,7 @@ namespace Frosty.ModSupport
 
                                             entry.Sha1 = Utils.GenerateSha1(buffer);
 
-                                            modifiedEbx.Add(entry.Name, entry);
+                                            modifiedEbx.TryAdd(entry.Name, entry);
                                             if (!archiveData.ContainsKey(entry.Sha1))
                                                 archiveData.TryAdd(entry.Sha1, new ArchiveInfo() { Data = buffer, RefCount = 1 });
                                             else
@@ -933,7 +940,7 @@ namespace Frosty.ModSupport
                                                 if (archiveData[existingEntry.Sha1].RefCount == 0)
                                                     archiveData.TryRemove(existingEntry.Sha1, out _);
 
-                                                modifiedRes.Remove(name);
+                                                modifiedRes.TryRemove(name, out _);
                                                 numArchiveEntries--;
                                             }
 
@@ -967,7 +974,7 @@ namespace Frosty.ModSupport
 
                                             entry.Sha1 = Utils.GenerateSha1(buffer);
 
-                                            modifiedRes.Add(entry.Name, entry);
+                                            modifiedRes.TryAdd(entry.Name, entry);
                                             if (!archiveData.ContainsKey(entry.Sha1))
                                                 archiveData.TryAdd(entry.Sha1, new ArchiveInfo() { Data = buffer, RefCount = 1 });
                                             else
@@ -1020,7 +1027,7 @@ namespace Frosty.ModSupport
                                                 if (archiveData[existingEntry.Sha1].RefCount == 0)
                                                     archiveData.TryRemove(existingEntry.Sha1, out _);
 
-                                                modifiedChunks.Remove(chunkId);
+                                                modifiedChunks.TryRemove(chunkId, out _);
                                                 numArchiveEntries--;
                                             }
 
@@ -1089,7 +1096,7 @@ namespace Frosty.ModSupport
 
                                             entry.Sha1 = Utils.GenerateSha1(buffer);
 
-                                            modifiedChunks.Add(entry.Id, entry);
+                                            modifiedChunks.TryAdd(entry.Id, entry);
                                             if (!archiveData.ContainsKey(entry.Sha1))
                                                 archiveData.TryAdd(entry.Sha1, new ArchiveInfo() { Data = buffer, RefCount = 1 });
                                             else
@@ -1101,7 +1108,7 @@ namespace Frosty.ModSupport
                                                 // previous mod format versions had no action listed for toc chunk changes
                                                 // so now have to manually add an action for it.
                                                 if (!modifiedBundles.ContainsKey(chunksBundleHash))
-                                                    modifiedBundles.Add(chunksBundleHash, new ModBundleInfo() { Name = chunksBundleHash });
+                                                    modifiedBundles.TryAdd(chunksBundleHash, new ModBundleInfo() { Name = chunksBundleHash });
                                                 ModBundleInfo chunksBundle = modifiedBundles[chunksBundleHash];
                                                 chunksBundle.Modify.Chunks.Add(entry.Id);
 
@@ -1140,7 +1147,7 @@ namespace Frosty.ModSupport
                                 int resourceId = action.GetValue<int>("resourceId");
 
                                 if (!modifiedBundles.ContainsKey(bundle))
-                                    modifiedBundles.Add(bundle, new ModBundleInfo() { Name = bundle });
+                                    modifiedBundles.TryAdd(bundle, new ModBundleInfo() { Name = bundle });
 
                                 ModBundleInfo modBundle = modifiedBundles[bundle];
                                 DbObject resource = resourceList[resourceId] as DbObject;
@@ -1193,7 +1200,7 @@ namespace Frosty.ModSupport
 
                                     int hash = Fnv1a.HashString(superBundle.ToLower());
                                     if (!addedBundles.ContainsKey(hash))
-                                        addedBundles.Add(hash, new List<string>());
+                                        addedBundles.TryAdd(hash, new List<string>());
 
                                     addedBundles[hash].Add(name);
                                 }
@@ -1211,7 +1218,7 @@ namespace Frosty.ModSupport
                                         if (archiveData[existingEntry.Sha1].RefCount == 0)
                                             archiveData.TryRemove(existingEntry.Sha1, out _);
 
-                                        modifiedEbx.Remove(name);
+                                        modifiedEbx.TryRemove(name, out _);
                                         numArchiveEntries--;
                                     }
 
@@ -1242,7 +1249,7 @@ namespace Frosty.ModSupport
 
                                     entry.Sha1 = Utils.GenerateSha1(buffer);
 
-                                    modifiedEbx.Add(entry.Name, entry);
+                                    modifiedEbx.TryAdd(entry.Name, entry);
                                     if (!archiveData.ContainsKey(entry.Sha1))
                                         archiveData.TryAdd(entry.Sha1, new ArchiveInfo() { Data = buffer, RefCount = 1 });
                                     else
@@ -1263,7 +1270,7 @@ namespace Frosty.ModSupport
                                         if (archiveData[existingEntry.Sha1].RefCount == 0)
                                             archiveData.TryRemove(existingEntry.Sha1, out _);
 
-                                        modifiedRes.Remove(name);
+                                        modifiedRes.TryRemove(name, out _);
                                         numArchiveEntries--;
                                     }
 
@@ -1297,7 +1304,7 @@ namespace Frosty.ModSupport
 
                                     entry.Sha1 = Utils.GenerateSha1(buffer);
 
-                                    modifiedRes.Add(entry.Name, entry);
+                                    modifiedRes.TryAdd(entry.Name, entry);
                                     if (!archiveData.ContainsKey(entry.Sha1))
                                         archiveData.TryAdd(entry.Sha1, new ArchiveInfo() { Data = buffer, RefCount = 1 });
                                     else
@@ -1350,7 +1357,7 @@ namespace Frosty.ModSupport
                                         if (archiveData[existingEntry.Sha1].RefCount == 0)
                                             archiveData.TryRemove(existingEntry.Sha1, out _);
 
-                                        modifiedChunks.Remove(chunkId);
+                                        modifiedChunks.TryRemove(chunkId, out _);
                                         numArchiveEntries--;
                                     }
 
@@ -1419,7 +1426,7 @@ namespace Frosty.ModSupport
 
                                     entry.Sha1 = Utils.GenerateSha1(buffer);
 
-                                    modifiedChunks.Add(entry.Id, entry);
+                                    modifiedChunks.TryAdd(entry.Id, entry);
                                     if (!archiveData.ContainsKey(entry.Sha1))
                                         archiveData.TryAdd(entry.Sha1, new ArchiveInfo() { Data = buffer, RefCount = 1 });
                                     else
@@ -1431,7 +1438,7 @@ namespace Frosty.ModSupport
                                         // previous mod format versions had no action listed for toc chunk changes
                                         // so now have to manually add an action for it.
                                         if (!modifiedBundles.ContainsKey(chunksBundleHash))
-                                            modifiedBundles.Add(chunksBundleHash, new ModBundleInfo() { Name = chunksBundleHash });
+                                            modifiedBundles.TryAdd(chunksBundleHash, new ModBundleInfo() { Name = chunksBundleHash });
                                         ModBundleInfo chunksBundle = modifiedBundles[chunksBundleHash];
                                         chunksBundle.Modify.Chunks.Add(entry.Id);
 
@@ -1855,7 +1862,7 @@ namespace Frosty.ModSupport
 
                     foreach (ManifestBundleAction completedAction in actions)
                     {
-                        if (completedAction.HasErrored)
+                        if (completedAction.Exception != null)
                         {
                             // if any of the threads caused an exception, throw it to the global handler
                             // as the game data is now in an inconsistent state
