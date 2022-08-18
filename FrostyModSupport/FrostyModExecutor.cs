@@ -732,7 +732,7 @@ namespace Frosty.ModSupport
             if (needsModding)
             {
                 cancelToken.ThrowIfCancellationRequested();
-                Logger.Log("Initializing resources");
+                Logger.Log("Initializing Resources");
 
                 if (ProfilesLibrary.DataVersion == (int)ProfileVersion.StarWarsBattlefrontII || ProfilesLibrary.DataVersion == (int)ProfileVersion.Battlefield5)
                 {
@@ -760,17 +760,22 @@ namespace Frosty.ModSupport
                 am.Initialize(additionalStartup: false);
 
                 cancelToken.ThrowIfCancellationRequested();
-                Logger.Log("Loading mods");
-                App.Logger.Log("Loading mods");
+                Logger.Log("Loading Mods");
+                App.Logger.Log("Loading Mods");
+
+                int totalMods = modPath.Length;
+                int currentMod = 0;
 
                 foreach (string path in modPaths)
                 {
                     FileInfo fi = new FileInfo(rootPath + path);
+                    Logger.Log("Loading Mods");
 
                     FrostyMod fmod = new FrostyMod(fi.FullName);
                     if (fmod.NewFormat)
                     {
                         // process resources from mod
+                        Logger.Log($"Loading Mods ({fmod.ModDetails.Title})");
                         ProcessModResources(fmod);
                     }
                     else
@@ -778,11 +783,13 @@ namespace Frosty.ModSupport
                         FrostyModCollection fcollection = new FrostyModCollection(fi.FullName);
                         if (fcollection.IsValid)
                         {
+                            totalMods += fcollection.Mods.Count;
                             foreach (FrostyMod newMod in fcollection.Mods)
                             {
                                 if (newMod.NewFormat)
                                 {
                                     // process resources from mod
+                                    Logger.Log($"Loading Mods ({newMod.ModDetails.Title})");
                                     ProcessModResources(newMod);
                                 }
                                 else
@@ -1110,6 +1117,9 @@ namespace Frosty.ModSupport
                                         }
                                     }
                                 }
+
+                                currentMod++;
+                                logger.Log("progress:" + (currentMod / (float)totalMods) * 100d);
                             }
                         }
                         else
@@ -1438,10 +1448,13 @@ namespace Frosty.ModSupport
                             }
                         }
                     }
+
+                    currentMod++;
+                    logger.Log("progress:" + (currentMod / (float)totalMods) * 100d);
                 }
 
-                Logger.Log("Applying handlers");
-                App.Logger.Log("Applying handlers");
+                Logger.Log("Applying Handlers");
+                App.Logger.Log("Applying Handlers");
 
                 // apply handlers
                 int totalResources = modifiedEbx.Count + modifiedRes.Count + modifiedChunks.Count;
@@ -1453,7 +1466,7 @@ namespace Frosty.ModSupport
                     () => {
                         Parallel.ForEach(modifiedEbx.Values, entry =>
                         {
-                            Logger.Log($"Applying handlers ({entry.Filename})");
+                            Logger.Log($"Applying Handlers ({entry.Filename})");
 
                             if (entry.ExtraData is HandlerExtraData handlerExtaData) {
                                 handlerExtaData.Handler.Modify(entry, am, runtimeResources, handlerExtaData.Data, out byte[] data);
@@ -1465,14 +1478,13 @@ namespace Frosty.ModSupport
                             }
 
                             currentResource++;
-                            uint progress = (uint)((currentResource / (float)totalResources) * 100);
-                            logger.Log("progress:" + progress);
+                            logger.Log("progress:" + (currentResource / (float)totalResources) * 100d);
                         });
                     },
                     () => {
                         Parallel.ForEach(modifiedRes.Values, entry =>
                         {
-                            Logger.Log($"Applying handlers ({entry.Filename})");
+                            Logger.Log($"Applying Handlers ({entry.Filename})");
 
                             if (entry.ExtraData is HandlerExtraData handlerExtaData) {
                                 handlerExtaData.Handler.Modify(entry, am, runtimeResources, handlerExtaData.Data, out byte[] data);
@@ -1484,14 +1496,13 @@ namespace Frosty.ModSupport
                             }
 
                             currentResource++;
-                            uint progress = (uint)((currentResource / (float)totalResources) * 100);
-                            logger.Log("progress:" + progress);
+                            logger.Log("progress:" + (currentResource / (float)totalResources) * 100d);
                         });
                     },
                     () => {
                         Parallel.ForEach(modifiedChunks.Values, entry =>
                         {
-                            Logger.Log($"Applying handlers ({entry.Filename})");
+                            Logger.Log($"Applying Handlers ({entry.Filename})");
 
                             if (entry.ExtraData is HandlerExtraData handlerExtaData) {
                                 handlerExtaData.Handler.Modify(entry, am, runtimeResources, handlerExtaData.Data, out byte[] data);
@@ -1503,8 +1514,7 @@ namespace Frosty.ModSupport
                             }
 
                             currentResource++;
-                            uint progress = (uint)((currentResource / (float)totalResources) * 100);
-                            logger.Log("progress:" + progress);
+                            logger.Log("progress:" + (currentResource / (float)totalResources) * 100d);
                         });
                     });
 
@@ -1512,8 +1522,8 @@ namespace Frosty.ModSupport
                 ProcessModResources(runtimeResources);
 
                 cancelToken.ThrowIfCancellationRequested();
-                Logger.Log("Cleaning up mod data directory");
-                App.Logger.Log("Cleaning up mod data directory");
+                Logger.Log("Cleaning Up ModData");
+                App.Logger.Log("Cleaning Up ModData");
 
                 List<SymLinkStruct> cmdArgs = new List<SymLinkStruct>();
                 bool newInstallation = false;
@@ -1652,8 +1662,8 @@ namespace Frosty.ModSupport
 
                 // modify tocs and sbs
                 cancelToken.ThrowIfCancellationRequested();
-                Logger.Log("Applying mods");
-                App.Logger.Log("Applying mods");
+                Logger.Log("Applying Mods");
+                App.Logger.Log("Applying Mods");
 
                 cmdArgs.Clear();
 
@@ -1985,6 +1995,9 @@ namespace Frosty.ModSupport
                 // reset threadpool
                 ThreadPool.SetMaxThreads(workerThreads, completionPortThreads);
 
+                Logger.Log("Writing CAS");
+                App.Logger.Log("Writing CAS");
+
                 // write out cas and modify cats
                 foreach (CasDataEntry entry in casData.EnumerateEntries())
                 {
@@ -2023,6 +2036,9 @@ namespace Frosty.ModSupport
                 }
 
                 cancelToken.ThrowIfCancellationRequested();
+
+                Logger.Log("Copying Patch Data");
+                App.Logger.Log("Copying Patch Data");
 
                 // finally copy in the left over patch data
                 CopyFileIfRequired(fs.BasePath + patchPath + "/initfs_win32", modPath + patchPath + "/initfs_win32");
@@ -2193,9 +2209,16 @@ namespace Frosty.ModSupport
             }
 
             // launch the game (redirecting to the modPath directory)
-            Logger.Log("Launching game");
+            Logger.Log("Launching Game");
 
-            ExecuteProcess($"{fs.BasePath + ProfilesLibrary.ProfileName}.exe", $"-dataPath \"{modPath.Trim('\\')}\" {additionalArgs}");
+            try
+            {
+                ExecuteProcess($"{fs.BasePath + ProfilesLibrary.ProfileName}.exe", $"-dataPath \"{modPath.Trim('\\')}\" {additionalArgs}");
+            }
+            catch (Exception ex)
+            {
+                App.Logger.Log("Error when launching game: " + ex);
+            }
 
             GC.Collect();
             return 0;
