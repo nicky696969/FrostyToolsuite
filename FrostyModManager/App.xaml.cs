@@ -67,7 +67,6 @@ namespace FrostyModManager
 #if !FROSTY_DEVELOPER
             // for displaying exception box on all unhandled exceptions
             DispatcherUnhandledException += App_DispatcherUnhandledException;
-            Exit += Application_Exit;
 #endif
 
             string BuildDate = FrostyModManager.Properties.Resources.BuildDate;
