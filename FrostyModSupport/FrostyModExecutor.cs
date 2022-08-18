@@ -770,13 +770,23 @@ namespace Frosty.ModSupport
                 Logger.Log("Loading Mods");
                 App.Logger.Log("Loading Mods");
 
-                int totalMods = modPaths.Length;
+                // Setup Loading Mods Progress
+                int totalMods = 0;
                 int currentMod = 0;
+                foreach (string path in modPaths)
+                {
+                    if (path.Contains(".fbmod"))
+                        totalMods++;
+                    else if (path.Contains(".fbcollection"))
+                    {
+                        FrostyModCollection fcollection = new FrostyModCollection(new FileInfo(rootPath + path).FullName);
+                        totalMods += fcollection.Mods.Count;
+                    }
+                }
 
                 foreach (string path in modPaths)
                 {
                     FileInfo fi = new FileInfo(rootPath + path);
-                    Logger.Log("Loading Mods");
 
                     FrostyMod fmod = new FrostyMod(fi.FullName);
                     if (fmod.NewFormat)
@@ -790,7 +800,6 @@ namespace Frosty.ModSupport
                         FrostyModCollection fcollection = new FrostyModCollection(fi.FullName);
                         if (fcollection.IsValid)
                         {
-                            totalMods += fcollection.Mods.Count;
                             foreach (FrostyMod newMod in fcollection.Mods)
                             {
                                 if (newMod.NewFormat)
@@ -2002,8 +2011,8 @@ namespace Frosty.ModSupport
                 // reset threadpool
                 ThreadPool.SetMaxThreads(workerThreads, completionPortThreads);
 
-                Logger.Log("Writing CAS");
-                App.Logger.Log("Writing CAS");
+                Logger.Log("Writing Archive Data");
+                App.Logger.Log("Writing Archive Data");
 
                 // write out cas and modify cats
                 foreach (CasDataEntry entry in casData.EnumerateEntries())
