@@ -619,6 +619,8 @@ namespace FrostyModManager
             Config.Save();
             //Config.Save(App.configFilename);
 
+            App.Logger.Log("Launching game");
+
             // initialize
             Frosty.Core.App.FileSystem = new FileSystem(Config.Get<string>("GamePath", "", ConfigScope.Game));
             //FileSystem fs = new FileSystem(Config.Get<string>("Init", "GamePath", ""));
@@ -672,6 +674,8 @@ namespace FrostyModManager
 
             if (retCode != -1)
                 WindowState = WindowState.Minimized;
+
+            App.Logger.Log("Done");
 
             // kill the application if launched from the command line
             if (App.LaunchGameImmediately)
