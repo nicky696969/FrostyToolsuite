@@ -632,7 +632,7 @@ namespace Frosty.ModSupport
             fs = inFs;
             Logger = inLogger;
 
-            string modPath = fs.BasePath + modDirName + "\\";
+            string modDataPath = fs.BasePath + modDirName + "\\";
             string patchPath = "Patch";
             if (ProfilesLibrary.DataVersion == (int)ProfileVersion.Fifa17 || ProfilesLibrary.DataVersion == (int)ProfileVersion.DragonAgeInquisition || ProfilesLibrary.DataVersion == (int)ProfileVersion.Battlefield4 || ProfilesLibrary.DataVersion == (int)ProfileVersion.NeedForSpeed || ProfilesLibrary.DataVersion == (int)ProfileVersion.PlantsVsZombiesGardenWarfare2 || ProfilesLibrary.DataVersion == (int)ProfileVersion.NeedForSpeedRivals)
                 patchPath = "Update\\Patch\\Data";
@@ -665,15 +665,15 @@ namespace Frosty.ModSupport
             cancelToken.ThrowIfCancellationRequested();
 
             cancelToken.ThrowIfCancellationRequested();
-            Logger.Log("Loading mods");
+            Logger.Log("Loading Mods");
 
             bool needsModding = false;
-            if (!File.Exists(modPath + patchPath + "/mods.txt"))
+            if (!File.Exists(modDataPath + patchPath + "/mods.txt"))
                 needsModding = true;
             else
             {
                 List<string> currentModPaths = new List<string>();
-                using (TextReader reader = new StreamReader(modPath + patchPath + "/mods.txt"))
+                using (TextReader reader = new StreamReader(modDataPath + patchPath + "/mods.txt"))
                 {
                     while (reader.Peek() != -1)
                         currentModPaths.Add(reader.ReadLine());
@@ -681,7 +681,7 @@ namespace Frosty.ModSupport
 
                 // check if the mod data needs recreating
                 // ie. mod change or patch
-                if (IsSamePatch(modPath + patchPath))
+                if (IsSamePatch(modDataPath + patchPath))
                 {
                     if (currentModPaths.Count != modPaths.Length)
                         needsModding = true;
@@ -763,7 +763,7 @@ namespace Frosty.ModSupport
                 Logger.Log("Loading Mods");
                 App.Logger.Log("Loading Mods");
 
-                int totalMods = modPath.Length;
+                int totalMods = modPaths.Length;
                 int currentMod = 0;
 
                 foreach (string path in modPaths)
@@ -1529,26 +1529,26 @@ namespace Frosty.ModSupport
                 bool newInstallation = false;
 
                 fs.ResetManifest();
-                if (!DeleteSelectFiles(modPath + patchPath))
+                if (!DeleteSelectFiles(modDataPath + patchPath))
                 {
-                    if (!Directory.Exists(modPath))
+                    if (!Directory.Exists(modDataPath))
                     {
                         newInstallation = true;
-                        Logger.Log("Creating mod data directory");
+                        Logger.Log("Creating ModData");
 
                         // create mod path
-                        Directory.CreateDirectory(modPath);
+                        Directory.CreateDirectory(modDataPath);
 
                         if (ProfilesLibrary.DataVersion == (int)ProfileVersion.StarWarsBattlefrontII)
                         {
-                            if (!Directory.Exists(modPath + "Data"))
-                                Directory.CreateDirectory(modPath + "Data");
-                            cmdArgs.Add(new SymLinkStruct(modPath + "Data/Win32", fs.BasePath + "Data/Win32", true));
+                            if (!Directory.Exists(modDataPath + "Data"))
+                                Directory.CreateDirectory(modDataPath + "Data");
+                            cmdArgs.Add(new SymLinkStruct(modDataPath + "Data/Win32", fs.BasePath + "Data/Win32", true));
                         }
                         if (ProfilesLibrary.DataVersion == (int)ProfileVersion.Battlefield5) //bfv doesnt have a patch directory so we need to rebuild the data folder structure instead
                         {
-                            if (!Directory.Exists(modPath + "Data"))
-                                Directory.CreateDirectory(modPath + "Data");
+                            if (!Directory.Exists(modDataPath + "Data"))
+                                Directory.CreateDirectory(modDataPath + "Data");
 
                             foreach (string casFilename in Directory.EnumerateFiles(fs.BasePath + patchPath, "*.cas", SearchOption.AllDirectories))
                             {
@@ -1565,14 +1565,14 @@ namespace Frosty.ModSupport
                         else
                         {
                             // data path
-                            cmdArgs.Add(new SymLinkStruct(modPath + "Data", fs.BasePath + "Data", true));
+                            cmdArgs.Add(new SymLinkStruct(modDataPath + "Data", fs.BasePath + "Data", true));
                         }
 
                         if (ProfilesLibrary.DataVersion == (int)ProfileVersion.DragonAgeInquisition || ProfilesLibrary.DataVersion == (int)ProfileVersion.Battlefield4 || ProfilesLibrary.DataVersion == (int)ProfileVersion.NeedForSpeed || ProfilesLibrary.DataVersion == (int)ProfileVersion.PlantsVsZombiesGardenWarfare2 || ProfilesLibrary.DataVersion == (int)ProfileVersion.NeedForSpeedRivals)
                         {
                             // create update dir if it does not exist
-                            if (!Directory.Exists(modPath + "Update"))
-                                Directory.CreateDirectory(modPath + "Update");
+                            if (!Directory.Exists(modDataPath + "Update"))
+                                Directory.CreateDirectory(modDataPath + "Update");
 
                             // update paths
                             foreach (string path in Directory.EnumerateDirectories(fs.BasePath + "Update"))
@@ -1581,13 +1581,13 @@ namespace Frosty.ModSupport
 
                                 // ignore the patch directory
                                 if (di.Name.ToLower() != "patch")
-                                    cmdArgs.Add(new SymLinkStruct(modPath + "Update/" + di.Name, di.FullName, true));
+                                    cmdArgs.Add(new SymLinkStruct(modDataPath + "Update/" + di.Name, di.FullName, true));
                             }
                         }
                         else if (ProfilesLibrary.DataVersion != (int)ProfileVersion.Fifa17)
                         {
                             // update path
-                            cmdArgs.Add(new SymLinkStruct(modPath + "Update", fs.BasePath + "Update", true));
+                            cmdArgs.Add(new SymLinkStruct(modDataPath + "Update", fs.BasePath + "Update", true));
                         }
 
                         if (ProfilesLibrary.DataVersion == (int)ProfileVersion.Fifa19 || ProfilesLibrary.DataVersion == (int)ProfileVersion.Madden20 || ProfilesLibrary.DataVersion == (int)ProfileVersion.Fifa20 || ProfilesLibrary.DataVersion == (int)ProfileVersion.NeedForSpeedHeat
@@ -1651,7 +1651,7 @@ namespace Frosty.ModSupport
                     FrostyMessageBox.Show(reason + "\r\n\r\nShortly you will be prompted for elevated privileges, this is required to create symbolic links between the original data and the new modified data. Please ensure that you accept this to avoid any issues.", "Frosty Toolsuite");
                     if (!RunSymbolicLinkProcess(cmdArgs))
                     {
-                        Directory.Delete(modPath, true);
+                        Directory.Delete(modDataPath, true);
                         throw new FrostySymLinkException();
                     }
                 }
@@ -1726,7 +1726,7 @@ namespace Frosty.ModSupport
                         if (!completedAction.TocModified)
                         {
                             string srcPath = fs.ResolvePath(completedAction.SuperBundle + ".toc");
-                            FileInfo sbFi = new FileInfo(modPath + patchPath + "/" + completedAction.SuperBundle + ".toc");
+                            FileInfo sbFi = new FileInfo(modDataPath + patchPath + "/" + completedAction.SuperBundle + ".toc");
 
                             if (!Directory.Exists(sbFi.DirectoryName))
                                 Directory.CreateDirectory(sbFi.DirectoryName);
@@ -1736,7 +1736,7 @@ namespace Frosty.ModSupport
                         if (!completedAction.SbModified)
                         {
                             string srcPath = fs.ResolvePath(completedAction.SuperBundle + ".sb");
-                            FileInfo sbFi = new FileInfo(modPath + patchPath + "/" + completedAction.SuperBundle + ".sb");
+                            FileInfo sbFi = new FileInfo(modDataPath + patchPath + "/" + completedAction.SuperBundle + ".sb");
 
                             if (!Directory.Exists(sbFi.DirectoryName))
                                 Directory.CreateDirectory(sbFi.DirectoryName);
@@ -1805,7 +1805,7 @@ namespace Frosty.ModSupport
                     }
 
                     // write out layout.toc with additional cas entries where required
-                    using (DbWriter writer = new DbWriter(new FileStream(modPath + patchPath + "/layout.toc", FileMode.Create), true))
+                    using (DbWriter writer = new DbWriter(new FileStream(modDataPath + patchPath + "/layout.toc", FileMode.Create), true))
                         writer.Write(layout);
                 }
                 else if (ProfilesLibrary.DataVersion == (int)ProfileVersion.StarWarsBattlefrontII || ProfilesLibrary.DataVersion == (int)ProfileVersion.Battlefield5)
@@ -1958,7 +1958,7 @@ namespace Frosty.ModSupport
                         if (!completedAction.TocModified)
                         {
                             string srcPath = fs.ResolvePath(completedAction.SuperBundle + ".toc");
-                            FileInfo sbFi = new FileInfo(modPath + patchPath + "/" + completedAction.SuperBundle + ".toc");
+                            FileInfo sbFi = new FileInfo(modDataPath + patchPath + "/" + completedAction.SuperBundle + ".toc");
 
                             if (!Directory.Exists(sbFi.DirectoryName))
                                 Directory.CreateDirectory(sbFi.DirectoryName);
@@ -1969,7 +1969,7 @@ namespace Frosty.ModSupport
                         if (!completedAction.SbModified)
                         {
                             string srcPath = fs.ResolvePath(completedAction.SuperBundle + ".sb");
-                            FileInfo sbFi = new FileInfo(modPath + patchPath + "/" + completedAction.SuperBundle + ".sb");
+                            FileInfo sbFi = new FileInfo(modDataPath + patchPath + "/" + completedAction.SuperBundle + ".sb");
 
                             if (!Directory.Exists(sbFi.DirectoryName))
                                 Directory.CreateDirectory(sbFi.DirectoryName);
@@ -2005,18 +2005,18 @@ namespace Frosty.ModSupport
                         continue;
 
                     cancelToken.ThrowIfCancellationRequested();
-                    if (!File.Exists(modPath + patchPath + "\\" + entry.Catalog + "\\cas.cat"))
+                    if (!File.Exists(modDataPath + patchPath + "\\" + entry.Catalog + "\\cas.cat"))
                     {
                         if (!File.Exists(fs.BasePath + "data\\" + entry.Catalog + "\\cas.cat"))
                             continue;
 
                         using (NativeReader reader = new NativeReader(new FileStream(fs.BasePath + "data\\" + entry.Catalog + "\\cas.cat", FileMode.Open, FileAccess.Read)))
                         {
-                            FileInfo fi = new FileInfo(modPath + patchPath + "\\" + entry.Catalog + "\\cas.cat");
+                            FileInfo fi = new FileInfo(modDataPath + patchPath + "\\" + entry.Catalog + "\\cas.cat");
                             if (!fi.Directory.Exists)
                                 Directory.CreateDirectory(fi.Directory.FullName);
 
-                            using (NativeWriter writer = new NativeWriter(new FileStream(modPath + patchPath + "\\" + entry.Catalog + "\\cas.cat", FileMode.Create)))
+                            using (NativeWriter writer = new NativeWriter(new FileStream(modDataPath + patchPath + "\\" + entry.Catalog + "\\cas.cat", FileMode.Create)))
                             {
                                 writer.Write(reader.ReadBytes(0x23C));
                                 writer.Write(0x00);
@@ -2032,7 +2032,7 @@ namespace Frosty.ModSupport
                         }
                     }
 
-                    WriteArchiveData(modPath + patchPath + "\\" + entry.Catalog, entry);
+                    WriteArchiveData(modDataPath + patchPath + "\\" + entry.Catalog, entry);
                 }
 
                 cancelToken.ThrowIfCancellationRequested();
@@ -2041,7 +2041,7 @@ namespace Frosty.ModSupport
                 App.Logger.Log("Copying Patch Data");
 
                 // finally copy in the left over patch data
-                CopyFileIfRequired(fs.BasePath + patchPath + "/initfs_win32", modPath + patchPath + "/initfs_win32");
+                CopyFileIfRequired(fs.BasePath + patchPath + "/initfs_win32", modDataPath + patchPath + "/initfs_win32");
 
                 if (ProfilesLibrary.DataVersion == (int)ProfileVersion.DragonAgeInquisition || ProfilesLibrary.DataVersion == (int)ProfileVersion.Battlefield4 || ProfilesLibrary.DataVersion == (int)ProfileVersion.NeedForSpeed || ProfilesLibrary.DataVersion == (int)ProfileVersion.PlantsVsZombiesGardenWarfare2 || ProfilesLibrary.DataVersion == (int)ProfileVersion.NeedForSpeedRivals)
                 {
@@ -2050,10 +2050,10 @@ namespace Frosty.ModSupport
                     using (DbReader reader = new DbReader(new FileStream(fs.BasePath + patchPath + "/layout.toc", FileMode.Open, FileAccess.Read), fs.CreateDeobfuscator()))
                         layout = reader.ReadDbObject();
 
-                    foreach (string path in Directory.EnumerateFiles(modPath + patchPath, "*.sb", SearchOption.AllDirectories))
+                    foreach (string path in Directory.EnumerateFiles(modDataPath + patchPath, "*.sb", SearchOption.AllDirectories))
                     {
                         // remove path, and extension and replace \ with /
-                        string sbName = path.Replace(modPath + patchPath + "\\", "").Replace("\\", "/").Replace(".sb", "");
+                        string sbName = path.Replace(modDataPath + patchPath + "\\", "").Replace("\\", "/").Replace(".sb", "");
                         foreach (DbObject entry in layout.GetValue<DbObject>("superBundles"))
                         {
                             if (entry.GetValue<string>("name").Equals(sbName, StringComparison.OrdinalIgnoreCase))
@@ -2064,7 +2064,7 @@ namespace Frosty.ModSupport
                         }
                     }
 
-                    using (DbWriter writer = new DbWriter(new FileStream(modPath + patchPath + "/layout.toc", FileMode.Create), true))
+                    using (DbWriter writer = new DbWriter(new FileStream(modDataPath + patchPath + "/layout.toc", FileMode.Create), true))
                         writer.Write(layout);
                 }
                 else if (ProfilesLibrary.DataVersion != (int)ProfileVersion.Fifa19 && ProfilesLibrary.DataVersion != (int)ProfileVersion.Madden20 && ProfilesLibrary.DataVersion != (int)ProfileVersion.Fifa20)
@@ -2084,13 +2084,13 @@ namespace Frosty.ModSupport
 
                         // find the next available cas
                         int casIndex = 1;
-                        while (File.Exists(modPath + patchPath + "/" + (string.Format("{0}\\cas_{1}.cas", catalog, casIndex.ToString("D2")))))
+                        while (File.Exists(modDataPath + patchPath + "/" + (string.Format("{0}\\cas_{1}.cas", catalog, casIndex.ToString("D2")))))
                             casIndex++;
 
                         Sha1 sha1 = Utils.GenerateSha1(tmpBuf);
 
                         archiveData.TryAdd(sha1, new ArchiveInfo() { Data = tmpBuf });
-                        WriteArchiveData(modPath + patchPath + "/" + catalog, new CasDataEntry("", sha1));
+                        WriteArchiveData(modDataPath + patchPath + "/" + catalog, new CasDataEntry("", sha1));
 
                         manifest.SetValue("size", tmpBuf.Length);
                         manifest.SetValue("offset", 0);
@@ -2115,9 +2115,9 @@ namespace Frosty.ModSupport
                         }
                     }
 
-                    string layoutLocation = modPath + patchPath + "/layout.toc";
+                    string layoutLocation = modDataPath + patchPath + "/layout.toc";
                     if (ProfilesLibrary.DataVersion == (int)ProfileVersion.StarWarsBattlefrontII || ProfilesLibrary.DataVersion == (int)ProfileVersion.Battlefield5)
-                        layoutLocation = modPath + "Data/layout.toc";
+                        layoutLocation = modDataPath + "Data/layout.toc";
 
                     using (DbWriter writer = new DbWriter(new FileStream(layoutLocation, FileMode.Create), true))
                         writer.Write(layout);
@@ -2126,18 +2126,18 @@ namespace Frosty.ModSupport
                 if (ProfilesLibrary.DataVersion == (int)ProfileVersion.Fifa17 || ProfilesLibrary.DataVersion == (int)ProfileVersion.DragonAgeInquisition || ProfilesLibrary.DataVersion == (int)ProfileVersion.Battlefield4 || ProfilesLibrary.DataVersion == (int)ProfileVersion.NeedForSpeed || ProfilesLibrary.DataVersion == (int)ProfileVersion.PlantsVsZombiesGardenWarfare2 || ProfilesLibrary.DataVersion == (int)ProfileVersion.NeedForSpeedRivals)
                 {
                     // copy additional files
-                    CopyFileIfRequired(fs.BasePath + patchPath + "/../package.mft", modPath + patchPath + "/../package.mft");
+                    CopyFileIfRequired(fs.BasePath + patchPath + "/../package.mft", modDataPath + patchPath + "/../package.mft");
                 }
 
                 if (ProfilesLibrary.DataVersion == (int)ProfileVersion.StarWarsBattlefrontII || ProfilesLibrary.DataVersion == (int)ProfileVersion.Battlefield5)
                 {
                     // copy from old data to new data
-                    CopyFileIfRequired(fs.BasePath + "Data/chunkmanifest", modPath + "Data/chunkmanifest");
-                    CopyFileIfRequired(fs.BasePath + "Data/initfs_Win32", modPath + "Data/initfs_Win32");
+                    CopyFileIfRequired(fs.BasePath + "Data/chunkmanifest", modDataPath + "Data/chunkmanifest");
+                    CopyFileIfRequired(fs.BasePath + "Data/initfs_Win32", modDataPath + "Data/initfs_Win32");
                 }
 
                 // create the frosty mod list file
-                using (TextWriter writer = new StreamWriter(modPath + patchPath + "/mods.txt"))
+                using (TextWriter writer = new StreamWriter(modDataPath + patchPath + "/mods.txt"))
                 {
                     foreach (string path in modPaths)
                     {
@@ -2193,7 +2193,7 @@ namespace Frosty.ModSupport
                 // copy over new CryptBase
                 CopyFileIfRequired("ThirdParty/CryptBase.dll", fs.BasePath + "CryptBase.dll");
             }
-            CopyFileIfRequired(fs.BasePath + "user.cfg", modPath + "user.cfg");
+            CopyFileIfRequired(fs.BasePath + "user.cfg", modDataPath + "user.cfg");
 
             // FIFA games require a fifaconfig workaround
             if (ProfilesLibrary.DataVersion == (int)ProfileVersion.Fifa17 || ProfilesLibrary.DataVersion == (int)ProfileVersion.Fifa18 || ProfilesLibrary.DataVersion == (int)ProfileVersion.Fifa19 || ProfilesLibrary.DataVersion == (int)ProfileVersion.Fifa20)
@@ -2213,7 +2213,7 @@ namespace Frosty.ModSupport
 
             try
             {
-                ExecuteProcess($"{fs.BasePath + ProfilesLibrary.ProfileName}.exe", $"-dataPath \"{modPath.Trim('\\')}\" {additionalArgs}");
+                ExecuteProcess($"{fs.BasePath + ProfilesLibrary.ProfileName}.exe", $"-dataPath \"{modDataPath.Trim('\\')}\" {additionalArgs}");
             }
             catch (Exception ex)
             {
