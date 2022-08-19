@@ -990,7 +990,7 @@ namespace Frosty.ModSupport
                     {
                         for (int i = 0; i < currentModPaths.Count; i++)
                         {
-                            FileInfo fi = new FileInfo(rootPath + modPaths[i]);
+                            FileInfo fi = new FileInfo(Path.Combine(rootPath, modPaths[i]));
                             FrostyMod fmod = new FrostyMod(fi.FullName);
 
                             string a = currentModPaths[i].ToLower();
