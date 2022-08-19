@@ -28,6 +28,8 @@ using FrostyCore;
 using Frosty.Core.Controls;
 using System.IO.Compression;
 using Newtonsoft.Json;
+using System.Threading.Tasks;
+using System.Linq;
 
 namespace FrostyModManager
 {
@@ -335,9 +337,11 @@ namespace FrostyModManager
                 if (!di.Exists)
                     Directory.CreateDirectory(di.FullName);
 
+                int currentMod = 0;
+                int totalMods = di.EnumerateFiles().Count();
 
                 // load mods
-                foreach (FileInfo fi in di.EnumerateFiles())
+                Parallel.ForEach(di.EnumerateFiles(), fi =>
                 {
                     if (fi.Extension == ".fbmod")
                     {
@@ -366,16 +370,19 @@ namespace FrostyModManager
                             File.Delete(fi.FullName.Replace(".fbmod", "_01.archive"));
                         }
                     }
-                }
+                    task.TaskLogger.Log("progress:" + currentMod++ / (float)totalMods * 100d);
+                });
                 // load collections
-                foreach (FileInfo fi in di.EnumerateFiles())
+                Parallel.ForEach(di.EnumerateFiles(), fi =>
                 {
                     if (fi.Extension == ".fbcollection")
                     {
                         AddCollection(fi.FullName, 0);
                     }
-                }
+                    task.TaskLogger.Log("progress:" + currentMod++ / (float)totalMods * 100d);
+                });
             });
+            availableMods = availableMods.OrderBy(o => o.Filename).ToList();
             availableModsList.ItemsSource = availableMods;
 
             CollectionView view = (CollectionView)CollectionViewSource.GetDefaultView(availableModsList.ItemsSource);
