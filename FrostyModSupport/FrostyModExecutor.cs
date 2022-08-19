@@ -206,6 +206,8 @@ namespace Frosty.ModSupport
             return resources;
         }
 
+        private void ReportProgress(int current, int total) => Logger.Log("progress:" + current / (float)total * 100d);
+
         private int HashBundle(BundleEntry bentry)
         {
             int hash = Fnv1.HashString(bentry.Name.ToLower());
@@ -1102,7 +1104,7 @@ namespace Frosty.ModSupport
                             Logger.Log($"Loading Mods ({fmod.ModDetails.Title})");
                             ProcessLegacyModResources(fi.FullName);
                         }
-                        Logger.Log("progress:" + currentMod++ / (float)totalMods * 100d);
+                        ReportProgress(currentMod++, totalMods);
                     }
                     else if (fi.Exists && fi.FullName.Contains(".fbcollection"))
                     {
@@ -1122,7 +1124,7 @@ namespace Frosty.ModSupport
                                     Logger.Log($"Loading Mods ({newMod.ModDetails.Title})");
                                     ProcessLegacyModResources(fi.FullName);
                                 }
-                                Logger.Log("progress:" + currentMod++ / (float)totalMods * 100d);
+                                ReportProgress(currentMod++, totalMods);
                             }
                         }
                     }
@@ -1151,7 +1153,7 @@ namespace Frosty.ModSupport
                                 else
                                     archiveData[entry.Sha1].RefCount++;
                             }
-                            Logger.Log("progress:" + currentResource++ / (float)totalResources * 100d);
+                            ReportProgress(currentResource++, totalResources);
                         });
                     },
                     () => {
@@ -1167,7 +1169,7 @@ namespace Frosty.ModSupport
                                 else
                                     archiveData[entry.Sha1].RefCount++;
                             }
-                            Logger.Log("progress:" + currentResource++ / (float)totalResources * 100d);
+                            ReportProgress(currentResource++, totalResources);
                         });
                     },
                     () => {
@@ -1183,7 +1185,7 @@ namespace Frosty.ModSupport
                                 else
                                     archiveData[entry.Sha1].RefCount++;
                             }
-                            Logger.Log("progress:" + currentResource++ / (float)totalResources * 100d);
+                            ReportProgress(currentResource++, totalResources);
                         });
                     });
 
@@ -1379,7 +1381,7 @@ namespace Frosty.ModSupport
                     {
                         // show progress
                         cancelToken.ThrowIfCancellationRequested();
-                        logger.Log("progress:" + ((totalTasks - numTasks) / (double)totalTasks) * 100.0d);
+                        ReportProgress(totalTasks - numTasks, totalTasks);
                         Thread.Sleep(1);
                     }
 
@@ -1440,7 +1442,7 @@ namespace Frosty.ModSupport
                     {
                         // show progress
                         cancelToken.ThrowIfCancellationRequested();
-                        logger.Log("progress:" + ((totalTasks - numTasks) / (double)totalTasks) * 100.0d);
+                        ReportProgress(totalTasks - numTasks, totalTasks);
                         Thread.Sleep(1);
                     }
 
@@ -1518,7 +1520,7 @@ namespace Frosty.ModSupport
                     {
                         // show progress
                         cancelToken.ThrowIfCancellationRequested();
-                        Logger.Log("progress:" + ((totalTasks - numTasks) / (double)totalTasks) * 100.0d);
+                        ReportProgress(totalTasks - numTasks, totalTasks);
                         Thread.Sleep(1);
                     }
 
@@ -1611,7 +1613,7 @@ namespace Frosty.ModSupport
                     {
                         // show progress
                         cancelToken.ThrowIfCancellationRequested();
-                        logger.Log("progress:" + ((totalTasks - numTasks) / (double)totalTasks) * 100.0d);
+                        ReportProgress(totalTasks - numTasks, totalTasks);
                         Thread.Sleep(1);
                     }
 
@@ -1669,7 +1671,7 @@ namespace Frosty.ModSupport
 
                 int totalEntries = casData.CountEntries();
                 int currentEntry = 0;
-                Logger.Log("progress:" + 0);
+                ReportProgress(currentEntry, totalEntries);
 
                 // write out cas and modify cats
                 foreach (CasDataEntry entry in casData.EnumerateEntries())
@@ -1707,7 +1709,7 @@ namespace Frosty.ModSupport
 
                     WriteArchiveData(modDataPath + patchPath + "\\" + entry.Catalog, entry);
 
-                    Logger.Log("progress:" + currentEntry++ / (float)totalEntries * 100d);
+                    ReportProgress(currentEntry++, totalEntries);
                 }
 
                 cancelToken.ThrowIfCancellationRequested();
