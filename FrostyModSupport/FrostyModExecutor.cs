@@ -1068,7 +1068,7 @@ namespace Frosty.ModSupport
                 List<FrostyMod> modList = new List<FrostyMod>();
                 foreach (string path in modPaths)
                 {
-                    FileInfo fi = new FileInfo(rootPath + path);
+                    FileInfo fi = new FileInfo(Path.Combine(rootPath, path));
 
                     if (fi.Extension == ".fbmod")
                         modList.Add(new FrostyMod(fi.FullName));
@@ -1784,7 +1784,7 @@ namespace Frosty.ModSupport
                 {
                     foreach (string path in modPaths)
                     {
-                        FileInfo fi = new FileInfo(rootPath + path);
+                        FileInfo fi = new FileInfo(Path.Combine(rootPath, path));
                         FrostyMod fmod = new FrostyMod(fi.FullName);
 
                         string version = "";
