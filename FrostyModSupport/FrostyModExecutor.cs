@@ -1071,63 +1071,36 @@ namespace Frosty.ModSupport
                 Logger.Log("Loading Mods");
                 App.Logger.Log("Loading Mods");
 
-                // Setup Loading Mods Progress
-                int totalMods = 0;
-                int currentMod = 0;
-                foreach (string path in modPaths)
-                {
-                    if (path.Contains(".fbmod"))
-                        totalMods++;
-                    else if (path.Contains(".fbcollection"))
-                    {
-                        FrostyModCollection fcollection = new FrostyModCollection(new FileInfo(rootPath + path).FullName);
-                        totalMods += fcollection.Mods.Count;
-                    }
-                }
-
-                // Load Mod Resources
+                // Get Full Modlist
+                List<FrostyMod> modList = new List<FrostyMod>();
                 foreach (string path in modPaths)
                 {
                     FileInfo fi = new FileInfo(rootPath + path);
 
-                    if (fi.Exists && fi.FullName.Contains(".fbmod"))
+                    if (fi.FullName.Contains(".fbmod"))
+                        modList.Add(new FrostyMod(fi.FullName));
+
+                    else if (fi.FullName.Contains(".fbcollection"))
                     {
-                        FrostyMod fmod = new FrostyMod(fi.FullName);
-                        if (fmod.NewFormat)
-                        {
-                            // process resources from mod
-                            Logger.Log($"Loading Mods ({fmod.ModDetails.Title})");
-                            ProcessModResources(fmod);
-                        }
-                        else
-                        {
-                            Logger.Log($"Loading Mods ({fmod.ModDetails.Title})");
-                            ProcessLegacyModResources(fi.FullName);
-                        }
-                        ReportProgress(currentMod++, totalMods);
+                        foreach (FrostyMod mod in new FrostyModCollection(fi.FullName).Mods)
+                            modList.Add(mod);
                     }
-                    else if (fi.Exists && fi.FullName.Contains(".fbcollection"))
+                }
+
+                // Load Mod Resources
+                int currentMod = 0;
+                foreach (FrostyMod mod in modList)
+                {
+                    Logger.Log($"Loading Mods ({mod.ModDetails.Title})");
+                    if (mod.NewFormat)
                     {
-                        FrostyModCollection fcollection = new FrostyModCollection(fi.FullName);
-                        if (fcollection.IsValid)
-                        {
-                            foreach (FrostyMod newMod in fcollection.Mods)
-                            {
-                                if (newMod.NewFormat)
-                                {
-                                    // process resources from mod
-                                    Logger.Log($"Loading Mods ({newMod.ModDetails.Title})");
-                                    ProcessModResources(newMod);
-                                }
-                                else
-                                {
-                                    Logger.Log($"Loading Mods ({newMod.ModDetails.Title})");
-                                    ProcessLegacyModResources(fi.FullName);
-                                }
-                                ReportProgress(currentMod++, totalMods);
-                            }
-                        }
+                        ProcessModResources(mod);
                     }
+                    else
+                    {
+                        ProcessLegacyModResources(mod.Path);
+                    }
+                    ReportProgress(currentMod++, modList.Count);
                 }
 
                 Logger.Log("Applying Handlers");
