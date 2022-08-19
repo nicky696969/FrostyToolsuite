@@ -130,6 +130,11 @@ namespace Frosty.ModSupport
                 foreach (CasDataEntry entry in entries.Values)
                     yield return entry;
             }
+
+            public int CountEntries()
+            {
+                return entries.Count;
+            }
         }
         private class FrostySymLinkException : Exception
         {
@@ -1662,6 +1667,10 @@ namespace Frosty.ModSupport
                 Logger.Log("Writing Archive Data");
                 App.Logger.Log("Writing Archive Data");
 
+                int totalEntries = casData.CountEntries();
+                int currentEntry = 0;
+                Logger.Log("progress:" + 0);
+
                 // write out cas and modify cats
                 foreach (CasDataEntry entry in casData.EnumerateEntries())
                 {
@@ -1697,6 +1706,8 @@ namespace Frosty.ModSupport
                     }
 
                     WriteArchiveData(modDataPath + patchPath + "\\" + entry.Catalog, entry);
+
+                    Logger.Log("progress:" + currentEntry++ / (float)totalEntries * 100d);
                 }
 
                 cancelToken.ThrowIfCancellationRequested();
