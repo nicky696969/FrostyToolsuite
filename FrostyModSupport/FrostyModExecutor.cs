@@ -1077,10 +1077,10 @@ namespace Frosty.ModSupport
                 {
                     FileInfo fi = new FileInfo(rootPath + path);
 
-                    if (fi.FullName.Contains(".fbmod"))
+                    if (fi.Extension == ".fbmod")
                         modList.Add(new FrostyMod(fi.FullName));
 
-                    else if (fi.FullName.Contains(".fbcollection"))
+                    else if (fi.Extension == ".fbcollection")
                     {
                         foreach (FrostyMod mod in new FrostyModCollection(fi.FullName).Mods)
                             modList.Add(mod);
