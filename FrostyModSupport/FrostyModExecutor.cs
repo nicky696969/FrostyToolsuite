@@ -222,419 +222,412 @@ namespace Frosty.ModSupport
         {
             Parallel.ForEach(fmod.Resources, resource =>
             {
-                //try
+                // pull existing bundles from asset manager
+                List<int> bundles = new List<int>();
+
+                if (resource.Type == ModResourceType.Bundle)
                 {
-                    // pull existing bundles from asset manager
-                    List<int> bundles = new List<int>();
+                    BundleEntry bEntry = new BundleEntry();
+                    resource.FillAssetEntry(bEntry);
 
-                    if (resource.Type == ModResourceType.Bundle)
+                    addedBundles.TryAdd(bEntry.SuperBundleId, new List<string>());
+                    addedBundles[bEntry.SuperBundleId].Add(bEntry.Name);
+
+                }
+                else if (resource.Type == ModResourceType.Ebx)
+                {
+                    if (resource.IsModified || !modifiedEbx.ContainsKey(resource.Name))
                     {
-                        BundleEntry bentry = new BundleEntry();
-                        resource.FillAssetEntry(bentry);
-
-                        addedBundles.TryAdd(bentry.SuperBundleId, new List<string>());
-                        addedBundles[bentry.SuperBundleId].Add(bentry.Name);
-
-                    }
-                    else if (resource.Type == ModResourceType.Ebx)
-                    {
-                        if (resource.IsModified || !modifiedEbx.ContainsKey(resource.Name))
+                        if (resource.HasHandler)
                         {
-                            if (resource.HasHandler)
-                            {
-                                EbxAssetEntry entry = null;
-                                HandlerExtraData extraData = null;
-                                byte[] data = fmod.GetResourceData(resource);
+                            EbxAssetEntry entry = null;
+                            HandlerExtraData extraData = null;
+                            byte[] data = fmod.GetResourceData(resource);
 
-                                if (modifiedEbx.ContainsKey(resource.Name))
+                            if (modifiedEbx.ContainsKey(resource.Name))
+                            {
+                                entry = modifiedEbx[resource.Name];
+                                extraData = (HandlerExtraData)entry.ExtraData;
+                            }
+                            else
+                            {
+                                entry = new EbxAssetEntry();
+                                extraData = new HandlerExtraData();
+
+                                resource.FillAssetEntry(entry);
+                                // the rest of the chunk will be populated via the handler
+
+                                ICustomActionHandler handler = App.PluginManager.GetCustomHandler((uint)resource.Handler);
+                                if (handler != null)
+                                    extraData.Handler = handler;
+
+                                // add in existing bundles
+                                var ebxEntry = am.GetEbxEntry(resource.Name);
+                                foreach (int bid in ebxEntry.Bundles)
                                 {
-                                    entry = modifiedEbx[resource.Name];
-                                    extraData = (HandlerExtraData)entry.ExtraData;
+                                    bundles.Add(HashBundle(am.GetBundleEntry(bid)));
+                                }
+
+                                entry.ExtraData = extraData;
+                                modifiedEbx.TryAdd(resource.Name, entry);
+                            }
+
+                            // merge new and old data together
+                            if (extraData != null)
+                                extraData.Data = extraData.Handler.Load(extraData.Data, data);
+                        }
+                        else
+                        {
+                            if (modifiedEbx.ContainsKey(resource.Name))
+                            {
+                                EbxAssetEntry existingEntry = modifiedEbx[resource.Name];
+
+                                if (existingEntry.ExtraData != null)
+                                    return;
+                                if (existingEntry.Sha1 == resource.Sha1)
+                                    return;
+
+                                archiveData[existingEntry.Sha1].RefCount--;
+                                if (archiveData[existingEntry.Sha1].RefCount == 0)
+                                    archiveData.TryRemove(existingEntry.Sha1, out _);
+
+                                modifiedEbx.TryRemove(resource.Name, out _);
+                                numArchiveEntries--;
+                            }
+
+                            EbxAssetEntry entry = new EbxAssetEntry();
+                            resource.FillAssetEntry(entry);
+
+                            byte[] data = fmod.GetResourceData(resource);
+                            var ebxEntry = am.GetEbxEntry(resource.Name);
+
+                            if (data == null)
+                            {
+                                data = NativeReader.ReadInStream(am.GetRawStream(ebxEntry));
+
+                                entry.Sha1 = ebxEntry.Sha1;
+                                entry.OriginalSize = ebxEntry.OriginalSize;
+                            }
+
+                            if (ebxEntry != null)
+                            {
+                                // add in existing bundles
+                                foreach (int bid in ebxEntry.Bundles)
+                                {
+                                    bundles.Add(HashBundle(am.GetBundleEntry(bid)));
+                                }
+                            }
+
+                            entry.Size = data.Length;
+
+                            modifiedEbx.TryAdd(entry.Name, entry);
+                            if (!archiveData.ContainsKey(entry.Sha1))
+                                archiveData.GetOrAdd(entry.Sha1, new ArchiveInfo() { Data = data, RefCount = 1 });
+                            else
+                                archiveData[entry.Sha1].RefCount++;
+                            numArchiveEntries++;
+                        }
+                    }
+                }
+                else if (resource.Type == ModResourceType.Res)
+                {
+                    if (resource.IsModified || !modifiedRes.ContainsKey(resource.Name))
+                    {
+                        if (resource.HasHandler)
+                        {
+                            ResAssetEntry entry = null;
+                            HandlerExtraData extraData = null;
+                            byte[] data = fmod.GetResourceData(resource);
+
+                            if (modifiedRes.ContainsKey(resource.Name))
+                            {
+                                entry = modifiedRes[resource.Name];
+                                extraData = (HandlerExtraData)entry.ExtraData;
+                            }
+                            else
+                            {
+                                entry = new ResAssetEntry();
+                                extraData = new HandlerExtraData();
+
+                                resource.FillAssetEntry(entry);
+                                // the rest of the chunk will be populated via the handler
+
+                                ICustomActionHandler handler = App.PluginManager.GetCustomHandler((ResourceType)entry.ResType);
+                                if (handler != null)
+                                    extraData.Handler = handler;
+
+                                // add in existing bundles
+                                var resEntry = am.GetResEntry(resource.Name);
+                                foreach (int bid in resEntry.Bundles)
+                                {
+                                    bundles.Add(HashBundle(am.GetBundleEntry(bid)));
+                                }
+
+                                entry.ExtraData = extraData;
+                                modifiedRes.TryAdd(resource.Name, entry);
+                            }
+
+                            // merge new and old data together
+                            if (extraData != null)
+                                extraData.Data = extraData.Handler.Load(extraData.Data, data);
+                        }
+                        else
+                        {
+                            if (modifiedRes.ContainsKey(resource.Name))
+                            {
+                                ResAssetEntry existingEntry = modifiedRes[resource.Name];
+
+                                if (existingEntry.ExtraData != null)
+                                    return;
+                                if (existingEntry.Sha1 == resource.Sha1)
+                                    return;
+
+                                archiveData[existingEntry.Sha1].RefCount--;
+                                if (archiveData[existingEntry.Sha1].RefCount == 0)
+                                    archiveData.TryRemove(existingEntry.Sha1, out _);
+
+                                modifiedRes.TryRemove(resource.Name, out _);
+                                numArchiveEntries--;
+                            }
+
+                            ResAssetEntry entry = new ResAssetEntry();
+                            resource.FillAssetEntry(entry);
+
+                            byte[] data = fmod.GetResourceData(resource);
+                            var resEntry = am.GetResEntry(resource.Name);
+
+                            if (data == null)
+                            {
+                                data = NativeReader.ReadInStream(am.GetRawStream(resEntry));
+
+                                entry.Sha1 = resEntry.Sha1;
+                                entry.OriginalSize = resEntry.OriginalSize;
+                                entry.ResMeta = resEntry.ResMeta;
+                                entry.ResRid = resEntry.ResRid;
+                                entry.ResType = resEntry.ResType;
+                            }
+
+                            if (resEntry != null)
+                            {
+                                // add in existing bundles
+                                foreach (int bid in resEntry.Bundles)
+                                {
+                                    bundles.Add(HashBundle(am.GetBundleEntry(bid)));
+                                }
+                            }
+
+                            entry.Size = data.Length;
+
+                            modifiedRes.TryAdd(entry.Name, entry);
+                            if (!archiveData.ContainsKey(entry.Sha1))
+                                archiveData.TryAdd(entry.Sha1, new ArchiveInfo() { Data = data, RefCount = 1 });
+                            else
+                                archiveData[entry.Sha1].RefCount++;
+                            numArchiveEntries++;
+                        }
+                    }
+                }
+                else if (resource.Type == ModResourceType.Chunk)
+                {
+                    Guid guid = new Guid(resource.Name);
+                    if (resource.IsModified || !modifiedChunks.ContainsKey(guid))
+                    {
+                        if (resource.HasHandler)
+                        {
+                            ChunkAssetEntry entry = null;
+                            HandlerExtraData extraData = null;
+                            byte[] data = fmod.GetResourceData(resource);
+
+                            if (modifiedChunks.ContainsKey(guid))
+                            {
+                                entry = modifiedChunks[guid];
+                                extraData = (HandlerExtraData)entry.ExtraData;
+                            }
+                            else
+                            {
+                                entry = new ChunkAssetEntry();
+                                extraData = new HandlerExtraData();
+
+                                entry.Id = guid;
+                                entry.IsTocChunk = resource.IsTocChunk;
+                                // the rest of the chunk will be populated via the handler
+
+                                if ((uint)resource.Handler == 0xBD9BFB65)
+                                {
+                                    // hack to ensure handler for legacy assets is set properly
+                                    extraData.Handler = new Frosty.Core.Handlers.LegacyCustomActionHandler();
                                 }
                                 else
                                 {
-                                    entry = new EbxAssetEntry();
-                                    extraData = new HandlerExtraData();
-
-                                    resource.FillAssetEntry(entry);
-                                    // the rest of the chunk will be populated via the handler
-
                                     ICustomActionHandler handler = App.PluginManager.GetCustomHandler((uint)resource.Handler);
                                     if (handler != null)
                                         extraData.Handler = handler;
-
-                                    // add in existing bundles
-                                    var ebxEntry = am.GetEbxEntry(resource.Name);
-                                    foreach (int bid in ebxEntry.Bundles)
-                                    {
-                                        bundles.Add(HashBundle(am.GetBundleEntry(bid)));
-                                    }
-
-                                    entry.ExtraData = extraData;
-                                    modifiedEbx.TryAdd(resource.Name, entry);
                                 }
 
-                                // merge new and old data together
-                                if (extraData != null)
-                                    extraData.Data = extraData.Handler.Load(extraData.Data, data);
-                            }
-                            else
-                            {
-                                if (modifiedEbx.ContainsKey(resource.Name))
-                                {
-                                    EbxAssetEntry existingEntry = modifiedEbx[resource.Name];
-
-                                    if (existingEntry.ExtraData != null)
-                                        return;
-                                    if (existingEntry.Sha1 == resource.Sha1)
-                                        return;
-
-                                    archiveData[existingEntry.Sha1].RefCount--;
-                                    if (archiveData[existingEntry.Sha1].RefCount == 0)
-                                        archiveData.TryRemove(existingEntry.Sha1, out _);
-
-                                    modifiedEbx.TryRemove(resource.Name, out _);
-                                    numArchiveEntries--;
-                                }
-
-                                EbxAssetEntry entry = new EbxAssetEntry();
-                                resource.FillAssetEntry(entry);
-
-                                byte[] data = fmod.GetResourceData(resource);
-                                var ebxEntry = am.GetEbxEntry(resource.Name);
-
-                                if (data == null)
-                                {
-                                    data = NativeReader.ReadInStream(am.GetRawStream(ebxEntry));
-
-                                    entry.Sha1 = ebxEntry.Sha1;
-                                    entry.OriginalSize = ebxEntry.OriginalSize;
-                                }
-
-                                if (ebxEntry != null)
-                                {
-                                    // add in existing bundles
-                                    foreach (int bid in ebxEntry.Bundles)
-                                    {
-                                        bundles.Add(HashBundle(am.GetBundleEntry(bid)));
-                                    }
-                                }
-
-                                entry.Size = data.Length;
-
-                                modifiedEbx.TryAdd(entry.Name, entry);
-                                if (!archiveData.ContainsKey(entry.Sha1))
-                                    archiveData.GetOrAdd(entry.Sha1, new ArchiveInfo() { Data = data, RefCount = 1 });
-                                else
-                                    archiveData[entry.Sha1].RefCount++;
-                                numArchiveEntries++;
-                            }
-                        }
-                    }
-                    else if (resource.Type == ModResourceType.Res)
-                    {
-                        if (resource.IsModified || !modifiedRes.ContainsKey(resource.Name))
-                        {
-                            if (resource.HasHandler)
-                            {
-                                ResAssetEntry entry = null;
-                                HandlerExtraData extraData = null;
-                                byte[] data = fmod.GetResourceData(resource);
-
-                                if (modifiedRes.ContainsKey(resource.Name))
-                                {
-                                    entry = modifiedRes[resource.Name];
-                                    extraData = (HandlerExtraData)entry.ExtraData;
-                                }
-                                else
-                                {
-                                    entry = new ResAssetEntry();
-                                    extraData = new HandlerExtraData();
-
-                                    resource.FillAssetEntry(entry);
-                                    // the rest of the chunk will be populated via the handler
-
-                                    ICustomActionHandler handler = App.PluginManager.GetCustomHandler((ResourceType)entry.ResType);
-                                    if (handler != null)
-                                        extraData.Handler = handler;
-
-                                    // add in existing bundles
-                                    var resEntry = am.GetResEntry(resource.Name);
-                                    foreach (int bid in resEntry.Bundles)
-                                    {
-                                        bundles.Add(HashBundle(am.GetBundleEntry(bid)));
-                                    }
-
-                                    entry.ExtraData = extraData;
-                                    modifiedRes.TryAdd(resource.Name, entry);
-                                }
-
-                                // merge new and old data together
-                                if (extraData != null)
-                                    extraData.Data = extraData.Handler.Load(extraData.Data, data);
-                            }
-                            else
-                            {
-                                if (modifiedRes.ContainsKey(resource.Name))
-                                {
-                                    ResAssetEntry existingEntry = modifiedRes[resource.Name];
-
-                                    if (existingEntry.ExtraData != null)
-                                        return;
-                                    if (existingEntry.Sha1 == resource.Sha1)
-                                        return;
-
-                                    archiveData[existingEntry.Sha1].RefCount--;
-                                    if (archiveData[existingEntry.Sha1].RefCount == 0)
-                                        archiveData.TryRemove(existingEntry.Sha1, out _);
-
-                                    modifiedRes.TryRemove(resource.Name, out _);
-                                    numArchiveEntries--;
-                                }
-
-                                ResAssetEntry entry = new ResAssetEntry();
-                                resource.FillAssetEntry(entry);
-
-                                byte[] data = fmod.GetResourceData(resource);
-                                var resEntry = am.GetResEntry(resource.Name);
-
-                                if (data == null)
-                                {
-                                    data = NativeReader.ReadInStream(am.GetRawStream(resEntry));
-
-                                    entry.Sha1 = resEntry.Sha1;
-                                    entry.OriginalSize = resEntry.OriginalSize;
-                                    entry.ResMeta = resEntry.ResMeta;
-                                    entry.ResRid = resEntry.ResRid;
-                                    entry.ResType = resEntry.ResType;
-                                }
-
-                                if (resEntry != null)
-                                {
-                                    // add in existing bundles
-                                    foreach (int bid in resEntry.Bundles)
-                                    {
-                                        bundles.Add(HashBundle(am.GetBundleEntry(bid)));
-                                    }
-                                }
-
-                                entry.Size = data.Length;
-
-                                modifiedRes.TryAdd(entry.Name, entry);
-                                if (!archiveData.ContainsKey(entry.Sha1))
-                                    archiveData.TryAdd(entry.Sha1, new ArchiveInfo() { Data = data, RefCount = 1 });
-                                else
-                                    archiveData[entry.Sha1].RefCount++;
-                                numArchiveEntries++;
-                            }
-                        }
-                    }
-                    else if (resource.Type == ModResourceType.Chunk)
-                    {
-                        Guid guid = new Guid(resource.Name);
-                        if (resource.IsModified || !modifiedChunks.ContainsKey(guid))
-                        {
-                            if (resource.HasHandler)
-                            {
-                                ChunkAssetEntry entry = null;
-                                HandlerExtraData extraData = null;
-                                byte[] data = fmod.GetResourceData(resource);
-
-                                if (modifiedChunks.ContainsKey(guid))
-                                {
-                                    entry = modifiedChunks[guid];
-                                    extraData = (HandlerExtraData)entry.ExtraData;
-                                }
-                                else
-                                {
-                                    entry = new ChunkAssetEntry();
-                                    extraData = new HandlerExtraData();
-
-                                    entry.Id = guid;
-                                    entry.IsTocChunk = resource.IsTocChunk;
-                                    // the rest of the chunk will be populated via the handler
-
-                                    if ((uint)resource.Handler == 0xBD9BFB65)
-                                    {
-                                        // hack to ensure handler for legacy assets is set properly
-                                        extraData.Handler = new Frosty.Core.Handlers.LegacyCustomActionHandler();
-                                    }
-                                    else
-                                    {
-                                        ICustomActionHandler handler = App.PluginManager.GetCustomHandler((uint)resource.Handler);
-                                        if (handler != null)
-                                            extraData.Handler = handler;
-                                    }
-
-                                    // add in existing bundles
-                                    var chunkEntry = am.GetChunkEntry(guid);
-                                    bundles.Add(chunksBundleHash);
-                                    foreach (int bid in chunkEntry.Bundles)
-                                    {
-                                        bundles.Add(HashBundle(am.GetBundleEntry(bid)));
-                                    }
-
-                                    entry.ExtraData = extraData;
-                                    modifiedChunks.TryAdd(guid, entry);
-                                }
-
-                                // merge new and old data together
-                                extraData.Data = extraData.Handler.Load(extraData.Data, data);
-                            }
-                            else
-                            {
-                                if (modifiedChunks.ContainsKey(guid))
-                                {
-                                    ChunkAssetEntry existingEntry = modifiedChunks[guid];
-                                    if (existingEntry.Sha1 == resource.Sha1)
-                                        return;
-
-                                    archiveData[existingEntry.Sha1].RefCount--;
-                                    if (archiveData[existingEntry.Sha1].RefCount == 0)
-                                        archiveData.TryRemove(existingEntry.Sha1, out _);
-
-                                    modifiedChunks.TryRemove(guid, out _);
-                                    numArchiveEntries--;
-                                }
-
-                                ChunkAssetEntry entry = new ChunkAssetEntry();
-                                resource.FillAssetEntry(entry);
-
-                                byte[] data = fmod.GetResourceData(resource);
+                                // add in existing bundles
                                 var chunkEntry = am.GetChunkEntry(guid);
-
-                                if (data == null)
+                                bundles.Add(chunksBundleHash);
+                                foreach (int bid in chunkEntry.Bundles)
                                 {
-                                    data = NativeReader.ReadInStream(am.GetRawStream(chunkEntry));
+                                    bundles.Add(HashBundle(am.GetBundleEntry(bid)));
+                                }
 
-                                    entry.Sha1 = (chunkEntry.Sha1 == Sha1.Zero) ? Utils.GenerateSha1(data) : chunkEntry.Sha1;
-                                    entry.OriginalSize = chunkEntry.OriginalSize;
-                                    entry.LogicalSize = chunkEntry.LogicalSize;
-                                    entry.LogicalOffset = chunkEntry.LogicalOffset;
-                                    entry.RangeStart = chunkEntry.RangeStart;
-                                    entry.RangeEnd = chunkEntry.RangeEnd;
+                                entry.ExtraData = extraData;
+                                modifiedChunks.TryAdd(guid, entry);
+                            }
 
-                                    if (ProfilesLibrary.DataVersion == (int)ProfileVersion.StarWarsBattlefrontII || ProfilesLibrary.DataVersion == (int)ProfileVersion.Battlefield5)
+                            // merge new and old data together
+                            extraData.Data = extraData.Handler.Load(extraData.Data, data);
+                        }
+                        else
+                        {
+                            if (modifiedChunks.ContainsKey(guid))
+                            {
+                                ChunkAssetEntry existingEntry = modifiedChunks[guid];
+                                if (existingEntry.Sha1 == resource.Sha1)
+                                    return;
+
+                                archiveData[existingEntry.Sha1].RefCount--;
+                                if (archiveData[existingEntry.Sha1].RefCount == 0)
+                                    archiveData.TryRemove(existingEntry.Sha1, out _);
+
+                                modifiedChunks.TryRemove(guid, out _);
+                                numArchiveEntries--;
+                            }
+
+                            ChunkAssetEntry entry = new ChunkAssetEntry();
+                            resource.FillAssetEntry(entry);
+
+                            byte[] data = fmod.GetResourceData(resource);
+                            var chunkEntry = am.GetChunkEntry(guid);
+
+                            if (data == null)
+                            {
+                                data = NativeReader.ReadInStream(am.GetRawStream(chunkEntry));
+
+                                entry.Sha1 = (chunkEntry.Sha1 == Sha1.Zero) ? Utils.GenerateSha1(data) : chunkEntry.Sha1;
+                                entry.OriginalSize = chunkEntry.OriginalSize;
+                                entry.LogicalSize = chunkEntry.LogicalSize;
+                                entry.LogicalOffset = chunkEntry.LogicalOffset;
+                                entry.RangeStart = chunkEntry.RangeStart;
+                                entry.RangeEnd = chunkEntry.RangeEnd;
+
+                                if (ProfilesLibrary.DataVersion == (int)ProfileVersion.StarWarsBattlefrontII || ProfilesLibrary.DataVersion == (int)ProfileVersion.Battlefield5)
+                                {
+                                    if (fs.GetManifestChunk(chunkEntry.Id) != null)
                                     {
-                                        if (fs.GetManifestChunk(chunkEntry.Id) != null)
+                                        entry.TocChunkSpecialHack = true;
+                                        if (chunkEntry.Bundles.Count == 0)
+                                            resource.ClearAddedBundles();
+
+                                        else if (entry.FirstMip != -1)
                                         {
-                                            entry.TocChunkSpecialHack = true;
-                                            if (chunkEntry.Bundles.Count == 0)
-                                                resource.ClearAddedBundles();
+                                            // need to calculate range start, since manifest bundle layouts don't store it directly
+                                            // however it is used to store chunk portions in bundles
+                                            // @todo: Move to mod export
 
-                                            else if (entry.FirstMip != -1)
+                                            using (NativeReader reader = new NativeReader(new MemoryStream(data)))
                                             {
-                                                // need to calculate range start, since manifest bundle layouts don't store it directly
-                                                // however it is used to store chunk portions in bundles
-                                                // @todo: Move to mod export
+                                                long logicalOffset = entry.LogicalOffset;
+                                                uint size = 0;
 
-                                                using (NativeReader reader = new NativeReader(new MemoryStream(data)))
+                                                while (true)
                                                 {
-                                                    long logicalOffset = entry.LogicalOffset;
-                                                    uint size = 0;
+                                                    int decompressedSize = reader.ReadInt(Endian.Big);
+                                                    ushort compressionType = reader.ReadUShort();
+                                                    int bufferSize = reader.ReadUShort(Endian.Big);
 
-                                                    while (true)
-                                                    {
-                                                        int decompressedSize = reader.ReadInt(Endian.Big);
-                                                        ushort compressionType = reader.ReadUShort();
-                                                        int bufferSize = reader.ReadUShort(Endian.Big);
+                                                    int flags = ((compressionType & 0xFF00) >> 8);
 
-                                                        int flags = ((compressionType & 0xFF00) >> 8);
+                                                    if ((flags & 0x0F) != 0)
+                                                        bufferSize = ((flags & 0x0F) << 0x10) + bufferSize;
+                                                    if ((decompressedSize & 0xFF000000) != 0)
+                                                        decompressedSize &= 0x00FFFFFF;
 
-                                                        if ((flags & 0x0F) != 0)
-                                                            bufferSize = ((flags & 0x0F) << 0x10) + bufferSize;
-                                                        if ((decompressedSize & 0xFF000000) != 0)
-                                                            decompressedSize &= 0x00FFFFFF;
+                                                    logicalOffset -= decompressedSize;
+                                                    if (logicalOffset < 0)
+                                                        break;
 
-                                                        logicalOffset -= decompressedSize;
-                                                        if (logicalOffset < 0)
-                                                            break;
+                                                    compressionType = (ushort)(compressionType & 0x7F);
+                                                    if (compressionType == 0x00)
+                                                        bufferSize = decompressedSize;
 
-                                                        compressionType = (ushort)(compressionType & 0x7F);
-                                                        if (compressionType == 0x00)
-                                                            bufferSize = decompressedSize;
-
-                                                        size += (uint)(bufferSize + 8);
-                                                        reader.Position += bufferSize;
-                                                    }
-
-                                                    entry.RangeStart = size;
-                                                    entry.RangeEnd = (uint)data.Length;
+                                                    size += (uint)(bufferSize + 8);
+                                                    reader.Position += bufferSize;
                                                 }
+
+                                                entry.RangeStart = size;
+                                                entry.RangeEnd = (uint)data.Length;
                                             }
                                         }
                                     }
                                 }
-
-                                if (chunkEntry != null)
-                                {
-                                    // add in existing bundles
-                                    bundles.Add(chunksBundleHash);
-                                    foreach (int bid in chunkEntry.Bundles)
-                                    {
-                                        bundles.Add(HashBundle(am.GetBundleEntry(bid)));
-                                    }
-                                }
-
-                                entry.Size = data.Length;
-
-                                modifiedChunks.TryAdd(guid, entry);
-                                if (!archiveData.ContainsKey(entry.Sha1))
-                                    archiveData.TryAdd(entry.Sha1, new ArchiveInfo() { Data = data, RefCount = 1 });
-                                else
-                                    archiveData[entry.Sha1].RefCount++;
-                                numArchiveEntries++;
                             }
-                        }
-                        else
-                        {
-                            if (ProfilesLibrary.DataVersion == (int)ProfileVersion.StarWarsBattlefrontII || ProfilesLibrary.DataVersion == (int)ProfileVersion.Battlefield5)
+
+                            if (chunkEntry != null)
                             {
-                                var chunkEntry = am.GetChunkEntry(guid);
-                                var entry = modifiedChunks[guid];
-
-                                if (fs.GetManifestChunk(chunkEntry.Id) != null)
+                                // add in existing bundles
+                                bundles.Add(chunksBundleHash);
+                                foreach (int bid in chunkEntry.Bundles)
                                 {
-                                    entry.TocChunkSpecialHack = true;
-                                    if (chunkEntry.Bundles.Count == 0)
-                                        resource.ClearAddedBundles();
+                                    bundles.Add(HashBundle(am.GetBundleEntry(bid)));
                                 }
                             }
+
+                            entry.Size = data.Length;
+
+                            modifiedChunks.TryAdd(guid, entry);
+                            if (!archiveData.ContainsKey(entry.Sha1))
+                                archiveData.TryAdd(entry.Sha1, new ArchiveInfo() { Data = data, RefCount = 1 });
+                            else
+                                archiveData[entry.Sha1].RefCount++;
+                            numArchiveEntries++;
                         }
                     }
-
-                    // modified bundle actions (these are pulled from the asset manager during applying)
-                    foreach (int bundleHash in bundles)
+                    else
                     {
-                        modifiedBundles.TryAdd(bundleHash, new ModBundleInfo() { Name = bundleHash });
-
-                        ModBundleInfo modBundle = modifiedBundles[bundleHash];
-                        switch (resource.Type)
+                        if (ProfilesLibrary.DataVersion == (int)ProfileVersion.StarWarsBattlefrontII || ProfilesLibrary.DataVersion == (int)ProfileVersion.Battlefield5)
                         {
-                            case ModResourceType.Ebx: modBundle.Modify.AddEbx(resource.Name); break;
-                            case ModResourceType.Res: modBundle.Modify.AddRes(resource.Name); break;
-                            case ModResourceType.Chunk: modBundle.Modify.AddChunk(new Guid(resource.Name)); break;
-                        }
-                    }
+                            var chunkEntry = am.GetChunkEntry(guid);
+                            var entry = modifiedChunks[guid];
 
-                    // add bundle actions (these are stored in the mod)
-                    foreach (int bundleHash in resource.AddedBundles)
-                    {
-                        modifiedBundles.TryAdd(bundleHash, new ModBundleInfo() { Name = bundleHash });
-
-                        ModBundleInfo modBundle = modifiedBundles[bundleHash];
-                        switch (resource.Type)
-                        {
-                            case ModResourceType.Ebx: modBundle.Add.AddEbx(resource.Name); break;
-                            case ModResourceType.Res: modBundle.Add.AddRes(resource.Name); break;
-                            case ModResourceType.Chunk: modBundle.Add.AddChunk(new Guid(resource.Name)); break;
+                            if (fs.GetManifestChunk(chunkEntry.Id) != null)
+                            {
+                                entry.TocChunkSpecialHack = true;
+                                if (chunkEntry.Bundles.Count == 0)
+                                    resource.ClearAddedBundles();
+                            }
                         }
                     }
                 }
-                //catch (Exception ex)
-                //{
 
-                //}
+                // modified bundle actions (these are pulled from the asset manager during applying)
+                foreach (int bundleHash in bundles)
+                {
+                    modifiedBundles.TryAdd(bundleHash, new ModBundleInfo() { Name = bundleHash });
+
+                    ModBundleInfo modBundle = modifiedBundles[bundleHash];
+                    switch (resource.Type)
+                    {
+                        case ModResourceType.Ebx: modBundle.Modify.AddEbx(resource.Name); break;
+                        case ModResourceType.Res: modBundle.Modify.AddRes(resource.Name); break;
+                        case ModResourceType.Chunk: modBundle.Modify.AddChunk(new Guid(resource.Name)); break;
+                    }
+                }
+
+                // add bundle actions (these are stored in the mod)
+                foreach (int bundleHash in resource.AddedBundles)
+                {
+                    modifiedBundles.TryAdd(bundleHash, new ModBundleInfo() { Name = bundleHash });
+
+                    ModBundleInfo modBundle = modifiedBundles[bundleHash];
+                    switch (resource.Type)
+                    {
+                        case ModResourceType.Ebx: modBundle.Add.AddEbx(resource.Name); break;
+                        case ModResourceType.Res: modBundle.Add.AddRes(resource.Name); break;
+                        case ModResourceType.Chunk: modBundle.Add.AddChunk(new Guid(resource.Name)); break;
+                    }
+                }
             });
         }
 
