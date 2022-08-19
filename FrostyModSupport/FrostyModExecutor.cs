@@ -928,6 +928,8 @@ namespace Frosty.ModSupport
             modDirName = "ModData\\" + modPackName;
             cancelToken.ThrowIfCancellationRequested();
 
+            App.Logger.Log("Launching");
+
             fs = inFs;
             Logger = inLogger;
 
@@ -1190,7 +1192,6 @@ namespace Frosty.ModSupport
                     });
 
                 // process any new resources added during custom handler modification
-                Logger.Log("Processing Handlers");
                 ProcessModResources(runtimeResources);
 
                 cancelToken.ThrowIfCancellationRequested();
@@ -1889,8 +1890,10 @@ namespace Frosty.ModSupport
             }
             catch (Exception ex)
             {
-                App.Logger.Log("Error when launching game: " + ex);
+                App.Logger.Log("Error Launching Game: " + ex);
             }
+
+            App.Logger.Log("Done");
 
             GC.Collect();
             return 0;
