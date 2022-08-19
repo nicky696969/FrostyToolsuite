@@ -1714,8 +1714,8 @@ namespace Frosty.ModSupport
 
                 cancelToken.ThrowIfCancellationRequested();
 
-                Logger.Log("Copying Patch Data");
-                App.Logger.Log("Copying Patch Data");
+                Logger.Log("Writing Manifest");
+                App.Logger.Log("Writing Manifest");
 
                 // finally copy in the left over patch data
                 CopyFileIfRequired(fs.BasePath + patchPath + "/initfs_win32", modDataPath + patchPath + "/initfs_win32");
