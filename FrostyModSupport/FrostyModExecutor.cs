@@ -1109,8 +1109,6 @@ namespace Frosty.ModSupport
                     () => {
                         Parallel.ForEach(modifiedEbx.Values, entry =>
                         {
-                            Logger.Log($"Applying Handlers ({entry.Filename})");
-
                             if (entry.ExtraData is HandlerExtraData handlerExtaData) {
                                 handlerExtaData.Handler.Modify(entry, am, runtimeResources, handlerExtaData.Data, out byte[] data);
 
@@ -1120,13 +1118,12 @@ namespace Frosty.ModSupport
                                     archiveData[entry.Sha1].RefCount++;
                             }
                             ReportProgress(currentResource++, totalResources);
+                            Logger.Log($"Applying Handlers ({currentResource}/{totalResources})");
                         });
                     },
                     () => {
                         Parallel.ForEach(modifiedRes.Values, entry =>
                         {
-                            Logger.Log($"Applying Handlers ({entry.Filename})");
-
                             if (entry.ExtraData is HandlerExtraData handlerExtaData) {
                                 handlerExtaData.Handler.Modify(entry, am, runtimeResources, handlerExtaData.Data, out byte[] data);
 
@@ -1136,13 +1133,12 @@ namespace Frosty.ModSupport
                                     archiveData[entry.Sha1].RefCount++;
                             }
                             ReportProgress(currentResource++, totalResources);
+                            Logger.Log($"Applying Handlers ({currentResource}/{totalResources})");
                         });
                     },
                     () => {
                         Parallel.ForEach(modifiedChunks.Values, entry =>
                         {
-                            Logger.Log($"Applying Handlers ({entry.Filename})");
-
                             if (entry.ExtraData is HandlerExtraData handlerExtaData) {
                                 handlerExtaData.Handler.Modify(entry, am, runtimeResources, handlerExtaData.Data, out byte[] data);
 
@@ -1152,6 +1148,7 @@ namespace Frosty.ModSupport
                                     archiveData[entry.Sha1].RefCount++;
                             }
                             ReportProgress(currentResource++, totalResources);
+                            Logger.Log($"Applying Handlers ({currentResource}/{totalResources})");
                         });
                     });
 
