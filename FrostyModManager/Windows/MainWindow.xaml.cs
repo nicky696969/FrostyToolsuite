@@ -332,11 +332,10 @@ namespace FrostyModManager
             TypeLibrary.Initialize();
             App.PluginManager.Initialize();
 
-            if (Config.Get<bool>("UseCustomModsDirectory", false) && Directory.Exists(Config.Get<string>("CustomModsDirectory", "")))
+            if (Directory.Exists(Config.Get<string>("CustomModsDirectory", "")))
                 modsDir = new DirectoryInfo(Path.Combine(Config.Get<string>("CustomModsDirectory", ""), ProfilesLibrary.ProfileName));
             else
-                Config.Add("UseCustomModsDirectory", false);
-            Config.Save();
+                App.Logger.LogWarning("Custom Mods Directory does not exist, using default instead");
 
             FrostyTaskWindow.Show("Loading Mods", "", (task) =>
             {

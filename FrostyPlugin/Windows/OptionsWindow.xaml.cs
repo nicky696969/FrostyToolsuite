@@ -17,6 +17,7 @@ using FrostySdk;
 using Microsoft.Win32;
 using System.Runtime.InteropServices;
 using System.Windows.Input;
+using System.IO;
 
 namespace Frosty.Core.Windows
 {
@@ -333,15 +334,9 @@ namespace Frosty.Core.Windows
         [EbxFieldMeta(EbxFieldType.Boolean)]
         public bool DeleteCollectionMods { get; set; } = true;
 
-        [Category("Mods")]
-        [DisplayName("Use Custom Mods Directory")]
-        [Description("If true, mods will be loaded from the set directory upon startup")]
-        [EbxFieldMeta(EbxFieldType.Boolean)]
-        public bool UseCustomModsDirectory { get; set; } = false;
-
-        [Category("Mods")]
+        [Category("Manager")]
         [DisplayName("Custom Mods Directory")]
-        [Description("Select directory to load mods from")]
+        [Description("Select directory to load mods from upon startup.")]
         [EbxFieldMeta(EbxFieldType.String)]
         [DependsOn("UseCustomModsDirectory")]
         public string CustomModsDirectory { get; set; }
@@ -383,7 +378,6 @@ namespace Frosty.Core.Windows
             CommandLineArgs = Config.Get<string>("CommandLineArgs", "", ConfigScope.Game);
             DeleteCollectionMods = Config.Get<bool>("DeleteCollectionMods", true);
 
-            UseCustomModsDirectory = Config.Get<bool>("UseCustomModsDirectory", false);
             CustomModsDirectory = Config.Get<string>("CustomModsDirectory", "");
 
             UpdateCheck = Config.Get<bool>("UpdateCheck", true);
@@ -402,8 +396,8 @@ namespace Frosty.Core.Windows
             Config.Add("CommandLineArgs", CommandLineArgs, ConfigScope.Game);
             Config.Add("DeleteCollectionMods", DeleteCollectionMods);
 
-            Config.Add("UseCustomModsDirectory", UseCustomModsDirectory);
-            Config.Add("CustomModsDirectory", CustomModsDirectory);
+            if (Directory.Exists(CustomModsDirectory))
+                Config.Add("CustomModsDirectory", CustomModsDirectory);
 
             Config.Add("UpdateCheck", UpdateCheck);
             Config.Add("UpdateCheckPrerelease", UpdateCheckPrerelease);
