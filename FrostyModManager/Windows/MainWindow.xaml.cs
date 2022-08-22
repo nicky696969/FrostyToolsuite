@@ -691,6 +691,8 @@ namespace FrostyModManager
             // kill the application if launched from the command line
             if (App.LaunchGameImmediately)
                 Close();
+            
+            GC.Collect();
         }
 
         private void FrostyWindow_Closing(object sender, CancelEventArgs e)

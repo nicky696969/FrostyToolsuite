@@ -426,6 +426,8 @@ namespace FrostyEditor
                 editorMod.Delete();
 
             launchButton.IsEnabled = true;
+            
+            GC.Collect();
         }
 
         private void unimplementedMenuItem_Click(object sender, RoutedEventArgs e)
