@@ -30,6 +30,7 @@ using System.IO.Compression;
 using Newtonsoft.Json;
 using System.Threading.Tasks;
 using System.Linq;
+using System.Windows.Threading;
 
 namespace FrostyModManager
 {
@@ -1528,7 +1529,14 @@ namespace FrostyModManager
             bool onlyShowReplacements = (bool)showOnlyReplacementsCheckBox.IsChecked;
 
             StringBuilder sb = new StringBuilder();
+
             List<ModResourceInfo> totalResourceList = new List<ModResourceInfo>();
+            List<GridViewColumn> columns = new List<GridViewColumn>() {
+                new GridViewColumn() {
+                    Header = "Resource",
+                    CellTemplate = conflictsListView.Resources["conflictsNameTemplate"] as DataTemplate
+                }
+            };
 
             CancellationTokenSource cancelToken = new CancellationTokenSource();
 
@@ -1536,89 +1544,103 @@ namespace FrostyModManager
             FrostyTaskWindow.Show("Updating Actions", "", (task) => {
                 try
                 {
-                    // Iterate through mod resources
-                    for (int i = 0; i < selectedPack.AppliedMods.Count; i++)
+                    List<FrostyMod> mods = new List<FrostyMod>();
+
+                    foreach (FrostyAppliedMod appliedMod in selectedPack.AppliedMods)
                     {
-                        FrostyAppliedMod appliedMod = selectedPack.AppliedMods[i];
-                        if (!appliedMod.IsFound || !appliedMod.IsEnabled)
-                            continue;
-
-
-                        FrostyMod[] mods;
-                        if (appliedMod.Mod is FrostyModCollection)
+                        if (appliedMod.IsFound && appliedMod.IsEnabled)
                         {
-                            mods = (appliedMod.Mod as FrostyModCollection).Mods.ToArray();
-                        }
-                        else
-                        {
-                            mods = new FrostyMod[1];
-                            mods[0] = appliedMod.Mod as FrostyMod;
-                        }
-
-                        foreach (var mod in mods)
-                        {
-                            if (mod.NewFormat)
+                            if (appliedMod.Mod is FrostyMod)
                             {
-                                foreach (BaseModResource resource in mod.Resources)
+                                mods.Add(appliedMod.Mod as FrostyMod);
+                            }
+                            
+                            else if (appliedMod.Mod is FrostyModCollection)
+                            {
+                                foreach (FrostyMod collectionMod in (appliedMod.Mod as FrostyModCollection).Mods)
                                 {
-                                    if (resource.Type == ModResourceType.Embedded)
-                                        continue;
-
-                                    string resType = resource.Type.ToString().ToLower();
-                                    string resourceName = resource.Name;
-
-                                    if (resource.UserData != "")
-                                    {
-                                        string[] arr = resource.UserData.Split(';');
-                                        resType = arr[0].ToLower();
-                                        resourceName = arr[1];
-                                    }
-
-                                    int index = totalResourceList.FindIndex((ModResourceInfo a) => a.Equals(resType + "/" + resourceName));
-
-                                    if (index == -1)
-                                    {
-                                        ModResourceInfo resInfo = new ModResourceInfo(resourceName, resType);
-                                        totalResourceList.Add(resInfo);
-                                        index = totalResourceList.Count - 1;
-                                    }
-
-                                    cancelToken.Token.ThrowIfCancellationRequested();
-
-                                    ModPrimaryActionType primaryAction = ModPrimaryActionType.None;
-                                    if (resource.HasHandler)
-                                    {
-                                        if ((uint)resource.Handler == 0xBD9BFB65)
-                                            primaryAction = ModPrimaryActionType.Merge;
-                                        else
-                                        {
-                                            ICustomActionHandler handler = null;
-                                            if (resource.Type == ModResourceType.Ebx)
-                                                handler = App.PluginManager.GetCustomHandler((uint)resource.Handler);
-                                            else if (resource.Type == ModResourceType.Res)
-                                                handler = App.PluginManager.GetCustomHandler((ResourceType)(resource as ResResource).ResType);
-
-                                            if (handler.Usage == HandlerUsage.Merge)
-                                            {
-                                                foreach (string actionString in handler.GetResourceActions(resource.Name, mod.GetResourceData(resource)))
-                                                {
-                                                    string[] arr = actionString.Split(';');
-                                                    AddResourceAction(totalResourceList, mod.Filename, arr[0], arr[1], (ModPrimaryActionType)Enum.Parse(typeof(ModPrimaryActionType), arr[2]));
-                                                }
-                                                primaryAction = ModPrimaryActionType.Merge;
-                                            }
-                                            else primaryAction = ModPrimaryActionType.Modify;
-                                        }
-                                    }
-                                    else if (resource.IsAdded) primaryAction = ModPrimaryActionType.Add;
-                                    else if (resource.IsModified) primaryAction = ModPrimaryActionType.Modify;
-
-                                    totalResourceList[index].AddMod(mod.Filename, primaryAction, resource.AddedBundles);
+                                    mods.Add(collectionMod);
                                 }
                             }
                         }
                     }
 
+                    task.TaskLogger.Log("Loading Resources");
+
+                    int currentMod = 0;
+                    Parallel.ForEach(mods, mod =>
+                    {
+                        task.TaskLogger.Log($"Loading Resources ({mod.ModDetails.Title})");
+                        if (mod.NewFormat)
+                        {
+                            Parallel.ForEach(mod.Resources, resource =>
+                            {
+                                if (resource.Type == ModResourceType.Embedded)
+                                    return;
+
+                                string resType = resource.Type.ToString().ToLower();
+                                string resourceName = resource.Name;
+
+                                if (resource.UserData != "")
+                                {
+                                    string[] arr = resource.UserData.Split(';');
+                                    resType = arr[0].ToLower();
+                                    resourceName = arr[1];
+                                }
+
+                                int index;
+                                lock (totalResourceList) index = totalResourceList.IndexOf(totalResourceList.Where((ModResourceInfo a) => a.Equals(resType + "/" + resourceName)).FirstOrDefault());
+
+                                if (index == -1)
+                                {
+                                    ModResourceInfo resInfo = new ModResourceInfo(resourceName, resType);
+                                    Dispatcher.Invoke(new Action(() =>
+                                    {
+                                        lock (totalResourceList) totalResourceList.Add(resInfo);
+                                    }), DispatcherPriority.Background);
+                                    
+                                    index = totalResourceList.Count - 1;
+                                }
+
+                                cancelToken.Token.ThrowIfCancellationRequested();
+
+                                ModPrimaryActionType primaryAction = ModPrimaryActionType.None;
+                                if (resource.HasHandler)
+                                {
+                                    if ((uint)resource.Handler == 0xBD9BFB65)
+                                        primaryAction = ModPrimaryActionType.Merge;
+                                    else
+                                    {
+                                        ICustomActionHandler handler = null;
+                                        if (resource.Type == ModResourceType.Ebx)
+                                            handler = App.PluginManager.GetCustomHandler((uint)resource.Handler);
+                                        else if (resource.Type == ModResourceType.Res)
+                                            handler = App.PluginManager.GetCustomHandler((ResourceType)(resource as ResResource).ResType);
+
+                                        if (handler.Usage == HandlerUsage.Merge)
+                                        {
+                                            foreach (string actionString in handler.GetResourceActions(resource.Name, mod.GetResourceData(resource)))
+                                            {
+                                                string[] arr = actionString.Split(';');
+                                                Dispatcher.Invoke(new Action(() =>
+                                                {
+                                                    lock (totalResourceList) AddResourceAction(totalResourceList, mod.Filename, arr[0], arr[1], (ModPrimaryActionType)Enum.Parse(typeof(ModPrimaryActionType), arr[2]));
+                                                }), DispatcherPriority.Background);
+                                                
+                                            }
+                                            primaryAction = ModPrimaryActionType.Merge;
+                                        }
+                                        else primaryAction = ModPrimaryActionType.Modify;
+                                    }
+                                }
+                                else if (resource.IsAdded) primaryAction = ModPrimaryActionType.Add;
+                                else if (resource.IsModified) primaryAction = ModPrimaryActionType.Modify;
+
+                                lock (totalResourceList) totalResourceList[index].AddMod(mod.Filename, primaryAction, resource.AddedBundles);
+                            });
+                        }
+                        task.TaskLogger.Log("progress:" + currentMod++ / (float)mods.Count * 100d);
+                    });
                 }
                 catch (OperationCanceledException)
                 {
@@ -1635,18 +1657,8 @@ namespace FrostyModManager
                 return;
             }
 
-            List<GridViewColumn> columns = new List<GridViewColumn>
+            foreach (FrostyAppliedMod appliedMod in selectedPack.AppliedMods)
             {
-                new GridViewColumn
-                {
-                    Header = "Resource",
-                    CellTemplate = conflictsListView.Resources["conflictsNameTemplate"] as DataTemplate
-                }
-            };
-
-            for (int i = 0; i < selectedPack.AppliedMods.Count; i++)
-            {
-                FrostyAppliedMod appliedMod = selectedPack.AppliedMods[i];
                 if (!appliedMod.IsFound || !appliedMod.IsEnabled)
                     continue;
 
@@ -1690,7 +1702,6 @@ namespace FrostyModManager
             }
 
             GridView gv = conflictsListView.View as GridView;
-
             gv.Columns.Clear();
             foreach (GridViewColumn gvc in columns)
                 gv.Columns.Add(gvc);
@@ -1702,21 +1713,25 @@ namespace FrostyModManager
             });
 
             Dispatcher.BeginInvoke((Action)(() => tabControl.SelectedItem = conflictsTabItem));
-            conflictsListView.ItemsSource = totalResourceList;
             conflictsListView.SelectedIndex = 0;
+            conflictsListView.ItemsSource = totalResourceList;
         }
 
         private void AddResourceAction(List<ModResourceInfo> totalResourceList, string modName, string resourceName, string resourceType, ModPrimaryActionType type)
         {
-            int index = totalResourceList.FindIndex((ModResourceInfo a) => a.Equals(resourceType + "/" + resourceName));
+            int index = totalResourceList.IndexOf(totalResourceList.Where((ModResourceInfo a) => a.Equals(resourceType + "/" + resourceName)).FirstOrDefault());
             if (index == -1)
             {
                 ModResourceInfo resInfo = new ModResourceInfo(resourceName, resourceType);
                 totalResourceList.Add(resInfo);
                 index = totalResourceList.Count - 1;
             }
+            Dispatcher.Invoke(new Action(() =>
+            {
+                lock (totalResourceList) totalResourceList[index].AddMod(modName, type, null);
+            }), DispatcherPriority.Background);
 
-            totalResourceList[index].AddMod(modName, type, null);
+            
         }
 
         private void tabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
