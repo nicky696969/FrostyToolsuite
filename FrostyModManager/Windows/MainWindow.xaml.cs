@@ -479,6 +479,8 @@ namespace FrostyModManager
                 orderComboBox.SelectedIndex = 0;
             else if (Config.Get("ApplyModOrder", "List") == "Priority")
                 orderComboBox.SelectedIndex = 1;
+
+            GC.Collect();
         }
 
         private void addProfileButton_Click(object sender, RoutedEventArgs e)
@@ -1519,7 +1521,10 @@ namespace FrostyModManager
         private void SelectedProfile_AppliedModsUpdated(object sender, RoutedEventArgs e)
         {
             if (tabControl.SelectedItem == conflictsTabItem)
+            {
                 UpdateConflicts();
+                GC.Collect();
+            }
 
             conflictsTabItem.Visibility = Visibility.Visible;
         }
@@ -1739,6 +1744,7 @@ namespace FrostyModManager
             if (conflictsTabItem.IsSelected)
             {
                 UpdateConflicts();
+                GC.Collect();
             }
         }
 
@@ -1780,6 +1786,7 @@ namespace FrostyModManager
         private void PART_ShowOnlyReplacementsCheckBox_Checked(object sender, RoutedEventArgs e)
         {
             UpdateConflicts();
+            GC.Collect();
         }
 
         private void optionsMenuItem_Click(object sender, RoutedEventArgs e)
