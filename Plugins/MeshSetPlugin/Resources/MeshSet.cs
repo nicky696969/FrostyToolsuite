@@ -1506,6 +1506,7 @@ namespace MeshSetPlugin.Resources
                 nameHash = (uint)Frosty.Hash.Fnv1.HashString(fullname);
             }
         }
+        public uint NameHash => nameHash;
         public int HeaderSize => BitConverter.ToUInt16(resMeta, 0x0c);
 
         public const int MaxLodCount = 6;
