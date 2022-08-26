@@ -1100,57 +1100,26 @@ namespace Frosty.ModSupport
                 App.Logger.Log("Applying Handlers");
 
                 // apply handlers
-                int totalResources = modifiedEbx.Count + modifiedRes.Count + modifiedChunks.Count;
-                int currentResource = 0;
-
                 RuntimeResources runtimeResources = new RuntimeResources();
 
-                Parallel.Invoke(
-                    () => {
-                        Parallel.ForEach(modifiedEbx.Values, entry =>
-                        {
-                            if (entry.ExtraData is HandlerExtraData handlerExtaData) {
-                                handlerExtaData.Handler.Modify(entry, am, runtimeResources, handlerExtaData.Data, out byte[] data);
+                List<AssetEntry> assetEntries = new List<AssetEntry>();
+                assetEntries.AddRange(modifiedEbx.Values);
+                assetEntries.AddRange(modifiedRes.Values);
+                assetEntries.AddRange(modifiedChunks.Values);
 
-                                if (!archiveData.ContainsKey(entry.Sha1))
-                                    archiveData.TryAdd(entry.Sha1, new ArchiveInfo() { Data = data, RefCount = 1 });
-                                else
-                                    archiveData[entry.Sha1].RefCount++;
-                            }
-                            ReportProgress(currentResource++, totalResources);
-                            Logger.Log($"Applying Handlers ({currentResource}/{totalResources})");
-                        });
-                    },
-                    () => {
-                        Parallel.ForEach(modifiedRes.Values, entry =>
-                        {
-                            if (entry.ExtraData is HandlerExtraData handlerExtaData) {
-                                handlerExtaData.Handler.Modify(entry, am, runtimeResources, handlerExtaData.Data, out byte[] data);
+                int currentResource = 0;
+                Parallel.ForEach(assetEntries, entry =>
+                {
+                    if (entry.ExtraData is HandlerExtraData handlerExtaData)
+                    {
+                        handlerExtaData.Handler.Modify(entry, am, runtimeResources, handlerExtaData.Data, out byte[] data);
 
-                                if (!archiveData.ContainsKey(entry.Sha1))
-                                    archiveData.TryAdd(entry.Sha1, new ArchiveInfo() { Data = data, RefCount = 1 });
-                                else
-                                    archiveData[entry.Sha1].RefCount++;
-                            }
-                            ReportProgress(currentResource++, totalResources);
-                            Logger.Log($"Applying Handlers ({currentResource}/{totalResources})");
-                        });
-                    },
-                    () => {
-                        Parallel.ForEach(modifiedChunks.Values, entry =>
-                        {
-                            if (entry.ExtraData is HandlerExtraData handlerExtaData) {
-                                handlerExtaData.Handler.Modify(entry, am, runtimeResources, handlerExtaData.Data, out byte[] data);
-
-                                if (!archiveData.ContainsKey(entry.Sha1))
-                                    archiveData.TryAdd(entry.Sha1, new ArchiveInfo() { Data = data, RefCount = 1 });
-                                else
-                                    archiveData[entry.Sha1].RefCount++;
-                            }
-                            ReportProgress(currentResource++, totalResources);
-                            Logger.Log($"Applying Handlers ({currentResource}/{totalResources})");
-                        });
-                    });
+                        if (!archiveData.TryAdd(entry.Sha1, new ArchiveInfo() { Data = data, RefCount = 1 }))
+                            archiveData[entry.Sha1].RefCount++;
+                    }
+                    ReportProgress(currentResource++, assetEntries.Count);
+                    Logger.Log($"Applying Handlers ({currentResource}/{assetEntries.Count})");
+                });
 
                 // process any new resources added during custom handler modification
                 ProcessModResources(runtimeResources);
