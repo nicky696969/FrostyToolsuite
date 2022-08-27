@@ -22,9 +22,9 @@ using System.Windows.Media;
 
 namespace DuplicationPlugin
 {
-    public class TextureExtension : DuplicateAssetExtension
+    public class TextureBaseExtension : DuplicateAssetExtension
     {
-        public override string AssetType => "TextureAsset";
+        public override string AssetType => "TextureBaseAsset";
 
         public override EbxAssetEntry DuplicateAsset(EbxAssetEntry entry, string newName, bool createNew, Type newType, Guid newFileGuid, Guid newRootGuid)
         {
@@ -50,6 +50,7 @@ namespace DuplicationPlugin
             // Duplicate the chunk
             Guid chunkGuid = DuplicateChunk(chunkEntry, texture.Flags.HasFlag(TextureFlags.OnDemandLoaded) || texture.Type != TextureType.TT_2d ? null : texture);
             ChunkAssetEntry newChunkEntry = App.AssetManager.GetChunkEntry(chunkGuid);
+            newChunkEntry.IsTocChunk = true;
             newTexture.ChunkId = chunkGuid;
 
             // Link the newly duplicates ebx, chunk, and res entries together
@@ -199,7 +200,6 @@ namespace DuplicationPlugin
     public class ObjectVariationExtension : DuplicateAssetExtension
     {
         public override string AssetType => "ObjectVariation";
-
         public override EbxAssetEntry DuplicateAsset(EbxAssetEntry entry, string newName, bool createNew, Type newType, Guid newFileGuid, Guid newRootGuid)
         {
             if (ProfilesLibrary.DataVersion != (int)ProfileVersion.StarWarsBattlefrontII)
@@ -318,36 +318,9 @@ namespace DuplicationPlugin
         }
     }
 
-    public class SoundWaveExtension : DuplicateAssetExtension
+    public class SoundDataExtension : DuplicateAssetExtension
     {
         public override string AssetType => "SoundWaveAsset";
-
-        public override EbxAssetEntry DuplicateAsset(EbxAssetEntry entry, string newName, bool createNew, Type newType, Guid newFileGuid, Guid newRootGuid)
-        {
-            // Duplicate the ebx
-            EbxAssetEntry newEntry = base.DuplicateAsset(entry, newName, createNew, newType, newFileGuid, newRootGuid);
-            EbxAsset newAsset = App.AssetManager.GetEbx(newEntry);
-            dynamic newRoot = newAsset.RootObject;
-
-            // Duplicate the chunks
-            foreach (dynamic chunk in newRoot.Chunks)
-            {
-                ChunkAssetEntry soundChunk = App.AssetManager.GetChunkEntry(chunk.ChunkId);
-                Guid chunkId = DuplicateChunk(soundChunk);
-
-                chunk.ChunkId = chunkId;
-                newEntry.LinkAsset(App.AssetManager.GetChunkEntry(chunkId));
-            }
-
-            App.AssetManager.ModifyEbx(newEntry.Name, newAsset);
-
-            return newEntry;
-        }
-    }
-
-    public class OctaneAssetExtension : DuplicateAssetExtension
-    {
-        public override string AssetType => "OctaneAsset";
 
         public override EbxAssetEntry DuplicateAsset(EbxAssetEntry entry, string newName, bool createNew, Type newType, Guid newFileGuid, Guid newRootGuid)
         {
