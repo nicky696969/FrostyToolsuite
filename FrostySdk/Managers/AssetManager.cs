@@ -1574,11 +1574,11 @@ namespace FrostySdk.Managers
                         ? null
                         : rm.GetRawResourceData(entry.Sha1);
 
-                //case AssetDataLocation.SuperBundle:
-                //    return rm.GetResourceData(((entry.ExtraData.IsPatch) ? "native_patch/" : "native_data/") + superBundles[entry.ExtraData.SuperBundleId].Name + ".sb", entry.ExtraData.DataOffset, entry.Size);
+                case AssetDataLocation.SuperBundle:
+                    return rm.GetRawResourceData(((entry.ExtraData.IsPatch) ? "native_patch/" : "native_data/") + superBundles[entry.ExtraData.SuperBundleId].Name + ".sb", entry.ExtraData.DataOffset, entry.Size);
 
-                //case AssetDataLocation.Cache:
-                //    return rm.GetResourceData(entry.ExtraData.DataOffset, entry.Size);
+                case AssetDataLocation.Cache:
+                    return rm.GetRawResourceData(entry.ExtraData.DataOffset, entry.Size);
 
                 case AssetDataLocation.CasNonIndexed:
                     return rm.GetRawResourceData(entry.ExtraData.CasPath, entry.ExtraData.DataOffset, entry.Size);
@@ -1917,7 +1917,15 @@ namespace FrostySdk.Managers
             Guid chunkId = chunk.GetValue<Guid>("id");
 
             if (chunkList.ContainsKey(chunkId))
+            {
+                chunkList[chunkId].Sha1 = chunk.GetValue<Sha1>("sha1");
+                chunkList[chunkId].LogicalOffset = chunk.GetValue<uint>("logicalOffset");
+                chunkList[chunkId].LogicalSize = chunk.GetValue<uint>("logicalSize");
+                chunkList[chunkId].RangeStart = chunk.GetValue<uint>("rangeStart");
+                chunkList[chunkId].RangeEnd = chunk.GetValue<uint>("rangeEnd");
+                chunkList[chunkId].BundledSize = chunk.GetValue<uint>("bundledSize");
                 return chunkList[chunkId];
+            }
 
             ChunkAssetEntry entry = new ChunkAssetEntry
             {
