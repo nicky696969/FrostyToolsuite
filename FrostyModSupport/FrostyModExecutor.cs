@@ -549,10 +549,11 @@ namespace Frosty.ModSupport
                                     }
                                 }
 
+                                
+                                bundles.Add(chunksBundleHash);
                                 if (chunkEntry != null)
                                 {
                                     // add in existing bundles
-                                    bundles.Add(chunksBundleHash);
                                     foreach (int bid in chunkEntry.Bundles)
                                     {
                                         bundles.Add(HashBundle(am.GetBundleEntry(bid)));
