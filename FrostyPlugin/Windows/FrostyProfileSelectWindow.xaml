@@ -46,12 +46,15 @@
                                     <ImageBrush ImageSource="{Binding Path=Thumbnail}"/>
                                 </Image.OpacityMask>
                             </Image>
-                            <Image x:Name="ColorImage" Source="{Binding Path=Thumbnail}" Visibility="Hidden"/>
+                            <Image x:Name="ColorImage" Source="{Binding Path=Thumbnail}" Opacity="0.25"/>
                         </Grid>
                         <DataTemplate.Triggers>
+                            <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                                <Setter TargetName="ColorImage" Property="Opacity" Value="0.75" />
+                            </DataTrigger>
                             <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
                                 <Setter TargetName="GreyscaleImage" Property="Visibility" Value="Hidden" />
-                                <Setter TargetName="ColorImage" Property="Visibility" Value="Visible" />
+                                <Setter TargetName="ColorImage" Property="Opacity" Value="1" />
                             </DataTrigger>
                         </DataTemplate.Triggers>
                     </DataTemplate>

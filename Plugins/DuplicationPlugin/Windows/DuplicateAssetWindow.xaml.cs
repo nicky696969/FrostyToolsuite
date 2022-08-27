@@ -3,6 +3,7 @@ using Frosty.Core;
 using Frosty.Core.Windows;
 using FrostySdk;
 using FrostySdk.Attributes;
+using FrostySdk.IO;
 using FrostySdk.Managers;
 using System;
 using System.Collections.Generic;
@@ -20,6 +21,9 @@ namespace DuplicationPlugin.Windows
         public string SelectedPath { get; private set; } = "";
         public string SelectedName { get; private set; } = "";
         public Type SelectedType { get; private set; } = null;
+        public Guid SelectedRootGUID { get; private set; } = new Guid();
+        public Guid SelectedFileGUID { get; private set; } = Guid.NewGuid();
+
         private EbxAssetEntry entry;
 
         public DuplicateAssetWindow(EbxAssetEntry currentEntry)
@@ -28,14 +32,34 @@ namespace DuplicationPlugin.Windows
 
             pathSelector.ItemsSource = App.AssetManager.EnumerateEbx();
             entry = currentEntry;
+            EbxAsset asset = App.AssetManager.GetEbx(entry);
+            SelectedRootGUID = Utils.GenerateDeterministicGuid(asset.Objects, asset.GetType(), SelectedFileGUID);
 
             assetNameTextBox.Text = currentEntry.Filename;
             assetTypeTextBox.Text = entry.Type;
+            assetInstanceGuidTextBox.Text = SelectedRootGUID.ToString();
+            assetFileGuidTextBox.Text = SelectedFileGUID.ToString();
         }
 
         private void AssetNameTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
 
+        }
+
+        private void AssetGuidTextBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            TextBox source = e.OriginalSource as TextBox;
+            try
+            {
+                new Guid(source.Text);
+            }
+            catch
+            {
+                if (source == assetInstanceGuidTextBox)
+                    source.Text = SelectedRootGUID.ToString();
+                else if (source == assetFileGuidTextBox)
+                    source.Text = SelectedFileGUID.ToString();
+            }
         }
 
         private void CancelButton_Click(object sender, RoutedEventArgs e)
@@ -48,6 +72,8 @@ namespace DuplicationPlugin.Windows
         {
             string tmp = assetNameTextBox.Text.Replace('\\', '/').Trim('/');
             string fullName = pathSelector.SelectedPath + "/" + tmp;
+            Guid instanceGuid = new Guid(assetInstanceGuidTextBox.Text);
+            Guid fileGuid = new Guid(assetFileGuidTextBox.Text);
 
             if (!string.IsNullOrEmpty(assetNameTextBox.Text) && !entry.Name.Equals(fullName, StringComparison.OrdinalIgnoreCase))
             {
@@ -55,6 +81,8 @@ namespace DuplicationPlugin.Windows
                 {
                     SelectedName = tmp;
                     SelectedPath = pathSelector.SelectedPath;
+                    SelectedRootGUID = instanceGuid;
+                    SelectedFileGUID = fileGuid;
 
                     DialogResult = true;
                     Close();
@@ -92,5 +120,7 @@ namespace DuplicationPlugin.Windows
                 }
             }
         }
+
+        
     }
 }

@@ -16,6 +16,9 @@ using System.Windows.Data;
 using FrostySdk;
 using Microsoft.Win32;
 using System.Runtime.InteropServices;
+using System.Windows.Input;
+using System.IO;
+using System.Diagnostics;
 
 namespace Frosty.Core.Windows
 {
@@ -59,7 +62,14 @@ namespace Frosty.Core.Windows
         [Description("The thread count that should be used when applying mods. By default is set to the number of processors on the machine")]
         [EbxFieldMeta(EbxFieldType.Int32)]
         public int ApplyingThreadCount { get; set; } = Environment.ProcessorCount;
-        
+
+        [Category("General")]
+        [DisplayName("CAS Max File Size")]
+        [Description("Change the maximum size of written cas files when applying mods.\r\n\r\nHigher Values decrease system stability but ensure mod compatibility.")]
+        [EbxFieldMeta(EbxFieldType.Struct)]
+        [Editor(typeof(FrostyLocalizationLanguageDataEditor))]
+        public CustomComboData<string, string> MaxCasFileSize { get; set; }
+
         [Category("General")]
         [DisplayName("Disable Launch Process Check")]
         [Description("Disable the functionality to check if a process is already running when trying to launch")]
@@ -75,6 +85,10 @@ namespace Frosty.Core.Windows
 
             ApplyingThreadCount = Config.Get<int>("ApplyingThreadCount", Environment.ProcessorCount);
 
+            List<string> sizes = new List<string>() { "1GB", "512MB", "256MB" };
+            MaxCasFileSize = new CustomComboData<string, string>(sizes, sizes);
+            MaxCasFileSize.SelectedIndex = sizes.IndexOf(Config.Get<string>("MaxCasFileSize", "512MB"));
+
             DisableLaunchProcessCheck = Config.Get<bool>("DisableLaunchProcessCheck", false);
         }
 
@@ -86,7 +100,8 @@ namespace Frosty.Core.Windows
             Config.Add("UpdateCheckPrerelease", UpdateCheckPrerelease);
             
             Config.Add("ApplyingThreadCount", ApplyingThreadCount);
-            
+            Config.Add("MaxCasFileSize", MaxCasFileSize.SelectedName);
+
             Config.Add("DisableLaunchProcessCheck", DisableLaunchProcessCheck);
         }
     }
@@ -352,6 +367,7 @@ namespace Frosty.Core.Windows
         public OptionsWindow()
         {
             InitializeComponent();
+            this.KeyDown += new KeyEventHandler(OptionsWindow_KeyDown);
         }
 
         private void OptionsWindow_Loaded(object sender, RoutedEventArgs e)
@@ -407,6 +423,15 @@ namespace Frosty.Core.Windows
                     return false;
             }
             return true;
+        }
+
+        void OptionsWindow_KeyDown(object sender, KeyEventArgs e) {
+            // Open Frosty Config Folder
+            if (e.Key == Key.F12) {
+                if (!Directory.Exists(App.GlobalSettingsPath))
+                    Directory.CreateDirectory(App.GlobalSettingsPath);
+                Process.Start(App.GlobalSettingsPath);
+            }
         }
     }
 }

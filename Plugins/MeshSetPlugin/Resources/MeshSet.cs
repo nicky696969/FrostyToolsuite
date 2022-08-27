@@ -1492,7 +1492,11 @@ namespace MeshSetPlugin.Resources
                 name = (id != -1) ? fullname.Substring(id + 1) : "";
             }
         }
-        public string Name
+        public string Name => name;
+        public uint NameHash { get => nameHash; set => nameHash = value; }
+        public int HeaderSize => BitConverter.ToUInt16(resMeta, 0x0c);
+
+        public int MaxLodCount
         {
             get => name;
             set
@@ -1583,6 +1587,7 @@ namespace MeshSetPlugin.Resources
             nameHash = reader.ReadUInt();
             meshType = (MeshType)reader.ReadUInt();
 
+            // unknown block
             if (ProfilesLibrary.DataVersion != (int)ProfileVersion.Fifa17 && ProfilesLibrary.DataVersion != (int)ProfileVersion.MassEffectAndromeda && ProfilesLibrary.DataVersion != (int)ProfileVersion.NeedForSpeedEdge && ProfilesLibrary.DataVersion != (int)ProfileVersion.NeedForSpeedRivals && ProfilesLibrary.DataVersion != (int)ProfileVersion.DragonAgeInquisition && ProfilesLibrary.DataVersion != (int)ProfileVersion.Battlefield4 && ProfilesLibrary.DataVersion != (int)ProfileVersion.PlantsVsZombiesGardenWarfare && ProfilesLibrary.DataVersion != (int)ProfileVersion.PlantsVsZombiesGardenWarfare2 && ProfilesLibrary.DataVersion != (int)ProfileVersion.NeedForSpeed)
             {
                 for (int i = 0; i < MaxLodCount * 2; i++)

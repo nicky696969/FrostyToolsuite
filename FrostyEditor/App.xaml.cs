@@ -73,12 +73,18 @@ namespace FrostyEditor
             Exit += Application_Exit;
 #endif
 
+            string BuildDate = FrostyEditor.Properties.Resources.BuildDate;
+            BuildDate = BuildDate.Substring(BuildDate.IndexOf(' ') + 1);
+            BuildDate = BuildDate.Substring(0, BuildDate.IndexOf(' '));
+
 #if FROSTY_DEVELOPER
             Frosty.Core.App.Version += " (Developer)";
 #elif FROSTY_ALPHA
             Frosty.Core.App.Version += $" (ALPHA {Frosty.Core.App.Version})";
 #elif FROSTY_BETA
             Frosty.Core.App.Version += $" (BETA {Frosty.Core.App.Version})";
+#elif FROSTY_GITHUB_RELEASE
+            Frosty.Core.App.Version += $" (Github Build {BuildDate})";
 #endif
         }
 
@@ -216,7 +222,6 @@ namespace FrostyEditor
             //check args to see if it is loading a project
             if (e.Args.Length > 0) {
                 string arg = e.Args[0];
-                
                 if (arg.Contains(".fbproject"))
                 {
                     m_openProject = true;
