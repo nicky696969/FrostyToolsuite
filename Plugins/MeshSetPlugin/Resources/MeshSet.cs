@@ -1492,11 +1492,7 @@ namespace MeshSetPlugin.Resources
                 name = (id != -1) ? fullname.Substring(id + 1) : "";
             }
         }
-        public string Name => name;
-        public uint NameHash { get => nameHash; set => nameHash = value; }
-        public int HeaderSize => BitConverter.ToUInt16(resMeta, 0x0c);
-
-        public int MaxLodCount
+        public string Name
         {
             get => name;
             set
