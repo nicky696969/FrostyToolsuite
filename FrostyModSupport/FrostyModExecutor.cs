@@ -6,11 +6,14 @@ using FrostySdk;
 using FrostySdk.Interfaces;
 using FrostySdk.IO;
 using FrostySdk.Managers;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -139,6 +142,30 @@ namespace Frosty.ModSupport
         private class FrostySymLinkException : Exception
         {
             public override string Message => "One ore more symbolic links could not be created, please restart tool as Administrator and ensure your storage drive is formatted to NTFS (not exFAT).";
+        }
+
+        [JsonObject(NamingStrategyType = typeof(SnakeCaseNamingStrategy))]
+        private class ModInfo
+        {
+            public string Name { get; set; }
+            public string Version { get; set; }
+            public string Category { get; set; }
+            public string Link { get; set; }
+            public string FileName { get; set; }
+
+
+            public override bool Equals(object obj)
+            {
+                ModInfo modInfo = obj as ModInfo;
+
+                if (this.Name == modInfo.Name 
+                    && this.Version == modInfo.Version 
+                    && this.Category == modInfo.Category
+                    && this.FileName == modInfo.FileName)
+                    return true;
+
+                return false;
+            }
         }
 
         private struct SymLinkStruct
@@ -969,62 +996,17 @@ namespace Frosty.ModSupport
             Logger.Log("Loading Mods");
 
             bool needsModding = false;
-            if (!File.Exists(modDataPath + patchPath + "/mods.txt"))
+            if (!File.Exists(Path.Combine(modDataPath, patchPath, "mods.json")))
                 needsModding = true;
             else
             {
-                List<string> currentModPaths = new List<string>();
-                using (TextReader reader = new StreamReader(modDataPath + patchPath + "/mods.txt"))
-                {
-                    while (reader.Peek() != -1)
-                        currentModPaths.Add(reader.ReadLine());
-                }
+                List<ModInfo> oldModInfoList = JsonConvert.DeserializeObject<List<ModInfo>>(File.ReadAllText(Path.Combine(modDataPath, patchPath, "mods.json")));
+                List<ModInfo> currentModInfoList = GenerateModInfoList(modPaths, rootPath);
 
                 // check if the mod data needs recreating
                 // ie. mod change or patch
-                if (IsSamePatch(modDataPath + patchPath))
-                {
-                    if (currentModPaths.Count != modPaths.Length)
-                        needsModding = true;
-                    else
-                    {
-                        for (int i = 0; i < currentModPaths.Count; i++)
-                        {
-                            FileInfo fi = new FileInfo(Path.Combine(rootPath, modPaths[i]));
-                            FrostyMod fmod = new FrostyMod(fi.FullName);
-
-                            string a = currentModPaths[i].ToLower();
-                            string b = "";
-
-                            if (fmod.NewFormat)
-                            {
-                                b = $"{modPaths[i].ToLower()}:{fmod.ModDetails.Version} '{fmod.ModDetails.Title}' '{fmod.ModDetails.Category}' '{fmod.ModDetails.Link}'";
-                            }
-                            else
-                            {
-                                FrostyModCollection fcollection = new FrostyModCollection(fi.FullName);
-                                if (fcollection.IsValid)
-                                {
-                                    b = $"{modPaths[i].ToLower()}:{fcollection.ModDetails.Version} '{fcollection.ModDetails.Title}' '{fcollection.ModDetails.Category}' '{fcollection.ModDetails.Link}'";
-                                }
-                                else
-                                {
-                                    DbObject mod = null;
-                                    using (DbReader reader = new DbReader(new FileStream(fi.FullName, FileMode.Open, FileAccess.Read), null))
-                                        mod = reader.ReadDbObject();
-
-                                    b = $"{modPaths[i].ToLower()}:{mod.GetValue<string>("version")} '{mod.GetValue<string>("title")}' '{mod.GetValue<string>("category")}' ''";
-                                }
-                            }
-
-                            if (!a.Equals(b, StringComparison.OrdinalIgnoreCase))
-                            {
-                                needsModding = true;
-                                break;
-                            }
-                        }
-                    }
-                }
+                if (IsSamePatch(modDataPath + patchPath) && oldModInfoList.SequenceEqual(currentModInfoList))
+                    needsModding = false;
                 else
                     needsModding = true;
             }
@@ -1746,48 +1728,9 @@ namespace Frosty.ModSupport
                 }
 
                 // create the frosty mod list file
-                using (TextWriter writer = new StreamWriter(modDataPath + patchPath + "/mods.txt"))
-                {
-                    foreach (string path in modPaths)
-                    {
-                        FileInfo fi = new FileInfo(Path.Combine(rootPath, path));
-                        FrostyMod fmod = new FrostyMod(fi.FullName);
+                List<ModInfo> modInfoList = GenerateModInfoList(modPaths, rootPath);
 
-                        string version = "";
-                        string name = "";
-                        string category = "";
-                        string link = "";
-                        if (fmod.NewFormat)
-                        {
-                            version = fmod.ModDetails.Version;
-                            name = fmod.ModDetails.Title;
-                            category = fmod.ModDetails.Category;
-                            link = fmod.ModDetails.Link;
-                        }
-                        else
-                        {
-                            FrostyModCollection fcollection = new FrostyModCollection(fi.FullName);
-                            if (fcollection.IsValid)
-                            {
-                                version = fcollection.ModDetails.Version;
-                                name = fcollection.ModDetails.Title;
-                                category = fcollection.ModDetails.Category;
-                                link = fcollection.ModDetails.Link;
-                            }
-                            else
-                            {
-                                DbObject mod = null;
-                                using (DbReader reader = new DbReader(new FileStream(fi.FullName, FileMode.Open, FileAccess.Read), null))
-                                    mod = reader.ReadDbObject();
-                                version = mod.GetValue<string>("version");
-                                name = mod.GetValue<string>("title");
-                            }
-
-                        }
-
-                        writer.WriteLine($"{path}:{version} '{name}' '{category}' '{link}'");
-                    }
-                }
+                File.WriteAllText(Path.Combine(modDataPath, patchPath, "mods.json"), JsonConvert.SerializeObject(modInfoList, Formatting.Indented));
             }
 
             cancelToken.ThrowIfCancellationRequested();
@@ -1833,6 +1776,62 @@ namespace Frosty.ModSupport
 
             GC.Collect();
             return 0;
+        }
+
+        private List<ModInfo> GenerateModInfoList(string[] modPaths, string rootPath)
+        {
+            List<ModInfo> modInfoList = new List<ModInfo>();
+
+            foreach (string path in modPaths)
+            {
+                FileInfo fi = new FileInfo(Path.Combine(rootPath, path));
+                FrostyMod fmod = new FrostyMod(fi.FullName);
+                ModInfo modInfo;
+
+                if (fmod.NewFormat)
+                {
+                    modInfo = new ModInfo
+                    {
+                        Name = fmod.ModDetails.Title,
+                        Version = fmod.ModDetails.Version,
+                        Category = fmod.ModDetails.Category,
+                        Link = fmod.ModDetails.Link,
+                        FileName = path
+                    };
+                }
+                else
+                {
+                    FrostyModCollection fcollection = new FrostyModCollection(fi.FullName);
+                    if (fcollection.IsValid)
+                    {
+                        modInfo = new ModInfo
+                        {
+                            Name = fcollection.ModDetails.Title,
+                            Version = fcollection.ModDetails.Version,
+                            Category = fcollection.ModDetails.Category,
+                            Link = fcollection.ModDetails.Link,
+                            FileName = path
+                        };
+                    }
+                    else
+                    {
+                        DbObject mod = null;
+                        using (DbReader reader = new DbReader(new FileStream(fi.FullName, FileMode.Open, FileAccess.Read), null))
+                            mod = reader.ReadDbObject();
+
+                        modInfo = new ModInfo
+                        {
+                            Name = mod.GetValue<string>("title"),
+                            Version = mod.GetValue<string>("version"),
+                            Category = mod.GetValue<string>("category"),
+                            FileName = path
+                        };
+                    }
+
+                }
+                modInfoList.Add(modInfo);
+            }
+            return modInfoList;
         }
 
         private void WriteArchiveData(string catalog, CasDataEntry casDataEntry)
@@ -2123,7 +2122,7 @@ namespace Frosty.ModSupport
             foreach (FileInfo fi in files)
             {
                 // delete all cat/toc/sb files and the initfs_win32 and mods file
-                if (fi.Extension == ".cat" || fi.Extension == ".toc" || fi.Extension == ".sb" || fi.Name.ToLower() == "mods.txt")
+                if (fi.Extension == ".cat" || fi.Extension == ".toc" || fi.Extension == ".sb" || fi.Name.ToLower() == "mods.json")
                 {
                     // dont delete layout.toc
                     if (fi.Name.ToLower() == "layout.toc")
