@@ -1005,9 +1005,7 @@ namespace Frosty.ModSupport
 
                 // check if the mod data needs recreating
                 // ie. mod change or patch
-                if (IsSamePatch(modDataPath + patchPath) && oldModInfoList.SequenceEqual(currentModInfoList))
-                    needsModding = false;
-                else
+                if (!IsSamePatch(modDataPath + patchPath) || !oldModInfoList.SequenceEqual(currentModInfoList))
                     needsModding = true;
             }
 
@@ -1728,9 +1726,7 @@ namespace Frosty.ModSupport
                 }
 
                 // create the frosty mod list file
-                List<ModInfo> modInfoList = GenerateModInfoList(modPaths, rootPath);
-
-                File.WriteAllText(Path.Combine(modDataPath, patchPath, "mods.json"), JsonConvert.SerializeObject(modInfoList, Formatting.Indented));
+                File.WriteAllText(Path.Combine(modDataPath, patchPath, "mods.json"), JsonConvert.SerializeObject(GenerateModInfoList(modPaths, rootPath), Formatting.Indented));
             }
 
             cancelToken.ThrowIfCancellationRequested();
@@ -2122,7 +2118,7 @@ namespace Frosty.ModSupport
             foreach (FileInfo fi in files)
             {
                 // delete all cat/toc/sb files and the initfs_win32 and mods file
-                if (fi.Extension == ".cat" || fi.Extension == ".toc" || fi.Extension == ".sb" || fi.Name.ToLower() == "mods.json")
+                if (fi.Extension == ".cat" || fi.Extension == ".toc" || fi.Extension == ".sb" || fi.Name.ToLower() == "mods.txt" || fi.Name.ToLower() == "mods.json")
                 {
                     // dont delete layout.toc
                     if (fi.Name.ToLower() == "layout.toc")
