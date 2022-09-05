@@ -645,7 +645,9 @@ namespace Frosty.ModSupport
                 {
                     // Skips bundle if the whitelist has more than one element and doesn't contain the bundle hash
                     if (App.WhitelistBundles.Count != 0 && !App.WhitelistBundles.Contains(bundleHash))
+                    {
                         continue;
+                    }
 
                     modifiedBundles.TryAdd(bundleHash, new ModBundleInfo() { Name = bundleHash });
 
@@ -662,9 +664,9 @@ namespace Frosty.ModSupport
                 foreach (int bundleHash in resource.AddedBundles)
                 {
                     // Skips bundle if the whitelist has more than one element and doesn't contain the bundle hash
-                    if (App.WhitelistBundles.Count != 0 && !App.WhitelistBundles.Contains(chunksBundleHash))
+                    if (App.WhitelistBundles.Count != 0 && !App.WhitelistBundles.Contains(bundleHash))
                     {
-                        App.WhitelistBundles.Add(chunksBundleHash);
+                        continue;
                     }
 
                     modifiedBundles.TryAdd(bundleHash, new ModBundleInfo() { Name = bundleHash });
