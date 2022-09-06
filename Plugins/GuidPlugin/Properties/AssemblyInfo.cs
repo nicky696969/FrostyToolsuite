@@ -24,7 +24,9 @@ using System.Windows;
 
 [assembly: PluginDisplayName("GUID")]
 [assembly: PluginAuthor("Dyvinia")]
-[assembly: PluginVersion("1.0.0.0")]
+[assembly: PluginVersion("1.1.0.0")]
 
 [assembly: RegisterDataExplorerContextMenu(typeof(CopyGuidContextMenuItem))]
 [assembly: RegisterDataExplorerContextMenu(typeof(LogGuidContextMenuItem))]
+
+[assembly: RegisterMenuExtension(typeof(NewPointerRefMenuExtension))]
