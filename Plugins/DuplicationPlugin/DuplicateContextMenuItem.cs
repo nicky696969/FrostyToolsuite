@@ -65,6 +65,56 @@ namespace DuplicationPlugin
         }
     }
 
+    public class ClothWrappingExtension : DuplicateAssetExtension
+    {
+        public override string AssetType => "ClothWrappingAsset";
+
+        public override EbxAssetEntry DuplicateAsset(EbxAssetEntry entry, string newName, bool createNew, Type newType, Guid newFileGuid, Guid newRootGuid)
+        {
+            // Duplicate the ebx
+            EbxAssetEntry newEntry = base.DuplicateAsset(entry, newName, createNew, newType, newFileGuid, newRootGuid);
+            EbxAsset newAsset = App.AssetManager.GetEbx(newEntry);
+            dynamic newRoot = newAsset.RootObject;
+
+            // Duplicate the res
+            ResAssetEntry resEntry = App.AssetManager.GetResEntry(newRoot.ClothWrappingAssetResource);
+            ResAssetEntry newResEntry = DuplicateRes(resEntry, newEntry.Name, ResourceType.EAClothEntityData);
+
+            // Update the ebx
+            newRoot.ClothWrappingAssetResource = newResEntry.ResRid;
+            newEntry.LinkAsset(resEntry);
+
+            App.AssetManager.ModifyEbx(newEntry.Name, newAsset);
+
+            return newEntry;
+        }
+    }
+
+    public class ClothExtension : DuplicateAssetExtension
+    {
+        public override string AssetType => "ClothAsset";
+
+        public override EbxAssetEntry DuplicateAsset(EbxAssetEntry entry, string newName, bool createNew, Type newType, Guid newFileGuid, Guid newRootGuid)
+        {
+            // Duplicate the ebx
+            EbxAssetEntry newEntry = base.DuplicateAsset(entry, newName, createNew, newType, newFileGuid, newRootGuid);
+            EbxAsset newAsset = App.AssetManager.GetEbx(newEntry);
+            dynamic newRoot = newAsset.RootObject;
+
+            // Duplicate the res
+            ResAssetEntry resEntry = App.AssetManager.GetResEntry(newRoot.ClothAssetResource);
+            ResAssetEntry newResEntry = DuplicateRes(resEntry, newEntry.Name, ResourceType.EAClothAssetData);
+
+            // Update the ebx
+            newRoot.ClothAssetResource = newResEntry.ResRid;
+            newEntry.LinkAsset(resEntry);
+
+            App.AssetManager.ModifyEbx(newEntry.Name, newAsset);
+
+            return newEntry;
+        }
+    }
+
     public class AtlasTextureExtension : DuplicateAssetExtension
     {
         public override string AssetType => "AtlasTextureAsset";
