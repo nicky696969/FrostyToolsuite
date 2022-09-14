@@ -15,8 +15,6 @@ namespace Frosty.ModSupport
     {
         private class ManifestBundleAction
         {
-            private static readonly object resourceLock = new object();
-
             public List<Sha1> DataRefs { get; } = new List<Sha1>();
             public List<Sha1> BundleRefs { get; } = new List<Sha1>();
             public List<CasFileEntry> FileInfos { get; } = new List<CasFileEntry>();
@@ -24,20 +22,7 @@ namespace Frosty.ModSupport
 
             public Exception Exception { get; private set; }
 
-            private List<ModBundleInfo> bundles;
-            private ManualResetEvent doneEvent;
-            private FrostyModExecutor parent;
-            private CancellationToken cancelToken;
-
-            public ManifestBundleAction(List<ModBundleInfo> inBundles, ManualResetEvent inDoneEvent, FrostyModExecutor inParent, CancellationToken inCancelToken)
-            {
-                bundles = inBundles;
-                doneEvent = inDoneEvent;
-                parent = inParent;
-                cancelToken = inCancelToken;
-            }
-
-            private void Run()
+            public ManifestBundleAction(List<ModBundleInfo> bundles, FrostyModExecutor parent, CancellationToken cancelToken)
             {
                 try
                 {
@@ -343,15 +328,6 @@ namespace Frosty.ModSupport
                 {
                     Exception = e;
                 }
-            }
-
-            public void ThreadPoolCallback(object threadContext)
-            {
-                Run();
-
-                // are all threads done?
-                if (Interlocked.Decrement(ref parent.numTasks) == 0)
-                    doneEvent.Set();
             }
         }
     }

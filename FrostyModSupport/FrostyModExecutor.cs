@@ -1436,8 +1436,7 @@ namespace Frosty.ModSupport
                 // swbf2, bfv, and sws
                 else if (ProfilesLibrary.IsLoaded(ProfileVersion.StarWarsBattlefrontII, ProfileVersion.Battlefield5, ProfileVersion.StarWarsSquadrons))
                 {
-                    List<ManifestBundleAction> actions = new List<ManifestBundleAction>();
-                    ManualResetEvent doneEvent = new ManualResetEvent(false);
+                    ConcurrentBag<ManifestBundleAction> actions = new ConcurrentBag<ManifestBundleAction>();
 
                     if (addedBundles.Count != 0)
                     {
@@ -1461,45 +1460,34 @@ namespace Frosty.ModSupport
                         tasks[catalog].Add(bundle);
                     }
 
-                    int totalTasks = 0;
-                    foreach (List<ModBundleInfo> task in tasks.Values)
+                    ReportProgress(0, tasks.Count);
+                    Parallel.ForEach(tasks.Values, task =>
                     {
-                        ManifestBundleAction action = new ManifestBundleAction(task, doneEvent, this, cancelToken);
-                        ThreadPool.QueueUserWorkItem(action.ThreadPoolCallback, null);
-                        actions.Add(action);
-                        numTasks++;
-                        totalTasks++;
-                    }
+                        actions.Add(new ManifestBundleAction(task, this, cancelToken));
+                        ReportProgress(actions.Count, tasks.Count);
+                    });
 
-                    while (numTasks != 0)
+                    foreach (ManifestBundleAction action in actions)
                     {
-                        // show progress
-                        cancelToken.ThrowIfCancellationRequested();
-                        ReportProgress(totalTasks - numTasks, totalTasks);
-                        Thread.Sleep(1);
-                    }
-
-                    foreach (ManifestBundleAction completedAction in actions)
-                    {
-                        if (completedAction.Exception != null)
+                        if (action.Exception != null)
                         {
                             // if any of the threads caused an exception, throw it to the global handler
                             // as the game data is now in an inconsistent state
-                            throw completedAction.Exception;
+                            throw action.Exception;
                         }
 
-                        if (completedAction.DataRefs.Count > 0)
+                        if (action.DataRefs.Count > 0)
                         {
                             // add bundle data to archive
-                            for (int i = 0; i < completedAction.BundleRefs.Count; i++)
+                            for (int i = 0; i < action.BundleRefs.Count; i++)
                             {
-                                if (!archiveData.ContainsKey(completedAction.BundleRefs[i]))
-                                    archiveData.TryAdd(completedAction.BundleRefs[i], new ArchiveInfo() { Data = completedAction.BundleBuffers[i] });
+                                if (!archiveData.ContainsKey(action.BundleRefs[i]))
+                                    archiveData.TryAdd(action.BundleRefs[i], new ArchiveInfo() { Data = action.BundleBuffers[i] });
                             }
 
                             // add refs to be added to cas (and manifest)
-                            for (int i = 0; i < completedAction.DataRefs.Count; i++)
-                                casData.Add(fs.GetCatalog(completedAction.FileInfos[i].FileInfo.file), completedAction.DataRefs[i], completedAction.FileInfos[i].Entry, completedAction.FileInfos[i].FileInfo);
+                            for (int i = 0; i < action.DataRefs.Count; i++)
+                                casData.Add(fs.GetCatalog(action.FileInfos[i].FileInfo.file), action.DataRefs[i], action.FileInfos[i].Entry, action.FileInfos[i].FileInfo);
                         }
                     }
 
