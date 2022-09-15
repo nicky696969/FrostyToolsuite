@@ -82,7 +82,7 @@ namespace DuplicationPlugin
 
             // Update the ebx
             newRoot.ClothWrappingAssetResource = newResEntry.ResRid;
-            newEntry.LinkAsset(resEntry);
+            newEntry.LinkAsset(newResEntry);
 
             App.AssetManager.ModifyEbx(newEntry.Name, newAsset);
 
@@ -107,7 +107,7 @@ namespace DuplicationPlugin
 
             // Update the ebx
             newRoot.ClothAssetResource = newResEntry.ResRid;
-            newEntry.LinkAsset(resEntry);
+            newEntry.LinkAsset(newResEntry);
 
             App.AssetManager.ModifyEbx(newEntry.Name, newAsset);
 
@@ -360,7 +360,7 @@ namespace DuplicationPlugin
 
             // Update the ebx
             newRoot.Resource = newResEntry.ResRid;
-            newEntry.LinkAsset(resEntry);
+            newEntry.LinkAsset(newResEntry);
 
             App.AssetManager.ModifyEbx(newEntry.Name, newAsset);
 
