@@ -16,6 +16,7 @@ using System.Windows.Data;
 using FrostySdk;
 using Microsoft.Win32;
 using System.Runtime.InteropServices;
+using System.IO;
 
 namespace Frosty.Core.Windows
 {
