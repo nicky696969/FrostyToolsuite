@@ -13,9 +13,6 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FrostySdk", "..\FrostySdk\FrostySdk.csproj", "{93FB4A0C-DF89-4169-80B5-C4E2277FF7A0}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FrostyModManager", "..\FrostyModManager\FrostyModManager.csproj", "{B72B292F-1309-4205-A3FC-3E4EA584CDE8}"
-	ProjectSection(ProjectDependencies) = postProject
-		{7F280BF3-F794-4715-9D32-770D36454B8C} = {7F280BF3-F794-4715-9D32-770D36454B8C}
-	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FrostyControls", "..\FrostyControls\FrostyControls.csproj", "{51D3305B-48D0-4D4C-9D64-727185420EAC}"
 EndProject
@@ -93,9 +90,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ReferencesPlugin", "..\Plug
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RootInstanceEntriesPlugin", "..\Plugins\RootInstanceEntriesPlugin\RootInstanceEntriesPlugin.csproj", "{FE2D780C-8FBC-4797-9ACD-05DE2507F1AA}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DatapathFixPlugin", "..\Plugins\LaunchPlatformPlugin\DatapathFixPlugin.csproj", "{7F280BF3-F794-4715-9D32-770D36454B8C}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FrostyCmd", "..\FrostyCmd\FrostyCmd.csproj", "{500ACAB7-D948-4BCA-8208-20812D712DDB}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DatapathFixPlugin", "..\Plugins\DatapathFixPlugin\DatapathFixPlugin.csproj", "{D940D99A-60ED-4E01-817E-FF59F8E744CB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -496,16 +493,6 @@ Global
 		{FE2D780C-8FBC-4797-9ACD-05DE2507F1AA}.Release - Final|x64.Build.0 = Release - Final|x64
 		{FE2D780C-8FBC-4797-9ACD-05DE2507F1AA}.Release|x64.ActiveCfg = Release - Alpha|x64
 		{FE2D780C-8FBC-4797-9ACD-05DE2507F1AA}.Release|x64.Build.0 = Release - Alpha|x64
-		{7F280BF3-F794-4715-9D32-770D36454B8C}.Developer - Debug|x64.ActiveCfg = Developer - Debug|x64
-		{7F280BF3-F794-4715-9D32-770D36454B8C}.Developer - Debug|x64.Build.0 = Developer - Debug|x64
-		{7F280BF3-F794-4715-9D32-770D36454B8C}.Release - Alpha|x64.ActiveCfg = Release - Alpha|x64
-		{7F280BF3-F794-4715-9D32-770D36454B8C}.Release - Alpha|x64.Build.0 = Release - Alpha|x64
-		{7F280BF3-F794-4715-9D32-770D36454B8C}.Release - Beta|x64.ActiveCfg = Release - Beta|x64
-		{7F280BF3-F794-4715-9D32-770D36454B8C}.Release - Beta|x64.Build.0 = Release - Beta|x64
-		{7F280BF3-F794-4715-9D32-770D36454B8C}.Release - Final|x64.ActiveCfg = Release - Final|x64
-		{7F280BF3-F794-4715-9D32-770D36454B8C}.Release - Final|x64.Build.0 = Release - Final|x64
-		{7F280BF3-F794-4715-9D32-770D36454B8C}.Release|x64.ActiveCfg = Release - Alpha|x64
-		{7F280BF3-F794-4715-9D32-770D36454B8C}.Release|x64.Build.0 = Release - Alpha|x64
 		{500ACAB7-D948-4BCA-8208-20812D712DDB}.Developer - Debug|x64.ActiveCfg = Developer - Debug|x64
 		{500ACAB7-D948-4BCA-8208-20812D712DDB}.Developer - Debug|x64.Build.0 = Developer - Debug|x64
 		{500ACAB7-D948-4BCA-8208-20812D712DDB}.Release - Alpha|x64.ActiveCfg = Release - Alpha|x64
@@ -516,6 +503,16 @@ Global
 		{500ACAB7-D948-4BCA-8208-20812D712DDB}.Release - Final|x64.Build.0 = Release - Final|x64
 		{500ACAB7-D948-4BCA-8208-20812D712DDB}.Release|x64.ActiveCfg = Release - Final|x64
 		{500ACAB7-D948-4BCA-8208-20812D712DDB}.Release|x64.Build.0 = Release - Final|x64
+		{D940D99A-60ED-4E01-817E-FF59F8E744CB}.Developer - Debug|x64.ActiveCfg = Developer - Debug|x64
+		{D940D99A-60ED-4E01-817E-FF59F8E744CB}.Developer - Debug|x64.Build.0 = Developer - Debug|x64
+		{D940D99A-60ED-4E01-817E-FF59F8E744CB}.Release - Alpha|x64.ActiveCfg = Release - Alpha|x64
+		{D940D99A-60ED-4E01-817E-FF59F8E744CB}.Release - Alpha|x64.Build.0 = Release - Alpha|x64
+		{D940D99A-60ED-4E01-817E-FF59F8E744CB}.Release - Beta|x64.ActiveCfg = Release - Beta|x64
+		{D940D99A-60ED-4E01-817E-FF59F8E744CB}.Release - Beta|x64.Build.0 = Release - Beta|x64
+		{D940D99A-60ED-4E01-817E-FF59F8E744CB}.Release - Final|x64.ActiveCfg = Release - Final|x64
+		{D940D99A-60ED-4E01-817E-FF59F8E744CB}.Release - Final|x64.Build.0 = Release - Final|x64
+		{D940D99A-60ED-4E01-817E-FF59F8E744CB}.Release|x64.ActiveCfg = Release - Alpha|x64
+		{D940D99A-60ED-4E01-817E-FF59F8E744CB}.Release|x64.Build.0 = Release - Alpha|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -553,7 +550,7 @@ Global
 		{21444577-C2B3-46BE-B914-EAEF25C6331F} = {492048B6-848D-4675-A9BF-34A4751303F2}
 		{B1FE3166-BBD2-4112-8618-1C5587E32CC4} = {492048B6-848D-4675-A9BF-34A4751303F2}
 		{FE2D780C-8FBC-4797-9ACD-05DE2507F1AA} = {492048B6-848D-4675-A9BF-34A4751303F2}
-		{7F280BF3-F794-4715-9D32-770D36454B8C} = {492048B6-848D-4675-A9BF-34A4751303F2}
+		{D940D99A-60ED-4E01-817E-FF59F8E744CB} = {492048B6-848D-4675-A9BF-34A4751303F2}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {C0B22EF1-4C3F-45B9-9F08-9793ED912199}
