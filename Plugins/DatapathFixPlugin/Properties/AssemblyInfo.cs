@@ -23,7 +23,7 @@ using System.Windows;
 
 [assembly: PluginDisplayName("DatapathFix")]
 [assembly: PluginAuthor("Dyvinia")]
-[assembly: PluginVersion("1.0.1.0")]
+[assembly: PluginVersion("1.1.0.0")]
 
 [assembly: RegisterOptionsExtension(typeof(LaunchOptions), Frosty.Core.PluginManagerType.Both)]
 [assembly: RegisterExecutionAction(typeof(LaunchExecutionAction))]

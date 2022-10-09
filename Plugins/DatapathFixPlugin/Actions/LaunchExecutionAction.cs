@@ -12,22 +12,6 @@ using Microsoft.Win32;
 namespace DatapathFixPlugin.Actions
 {
 
-    public static class EADesktop
-    {
-        public static string ProcessName => "EADesktop";
-
-        public static string FullPath
-        {
-            get
-            {
-                using (RegistryKey lmKey = Registry.LocalMachine.OpenSubKey($"SOFTWARE\\WOW6432Node\\Electronic Arts\\EA Desktop"))
-                {
-                    return lmKey.GetValue("DesktopAppPath")?.ToString();
-                }
-            }
-        }
-    }
-
     public class LaunchExecutionAction : ExecutionAction
     {
         public string DatapathFix = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "DatapathFix.exe");
@@ -38,47 +22,31 @@ namespace DatapathFixPlugin.Actions
             ResetGameDirectory(game);
             Thread.Sleep(1000);
 
-            if (Config.Get("DatapathFixEnabled", true) && File.Exists(DatapathFix) && File.Exists(EADesktop.FullPath))
+            if (Config.Get("DatapathFixEnabled", true) && File.Exists(DatapathFix))
             {
-                foreach (Process p in Process.GetProcesses())
-                {
-                    if (p.ProcessName == EADesktop.ProcessName)
-                    {
-                        p.Kill();
-                    }
-                }
-
                 string cmdArgs = $"-dataPath \"{Path.Combine(App.FileSystem.BasePath, $"ModData\\{App.SelectedPack}")}\"";
 
                 File.WriteAllText(Path.Combine(App.FileSystem.BasePath, "tmp"), cmdArgs);
                 File.Move(game, game.Replace(".exe", ".orig.exe"));
                 File.Copy(DatapathFix, game, true);
 
-                FrostyModExecutor.ExecuteProcess(EADesktop.FullPath, "", false, false);
-
-                logger.Log("Waiting For EA Desktop");
-                Thread.Sleep(12000);
-                WaitForProcess(EADesktop.ProcessName);
+                Thread.Sleep(1000);
             }
             else if (!File.Exists(DatapathFix))
             {
                 App.Logger.LogError("Cannot find DatapathFix.exe");
             }
-            else if (!File.Exists(EADesktop.FullPath))
-            {
-                App.Logger.LogError("Cannot find EA Desktop installation");
-            }
         });
 
         public override Action<ILogger, PluginManagerType, CancellationToken> PostLaunchAction => new Action<ILogger, PluginManagerType, CancellationToken>((ILogger logger, PluginManagerType type, CancellationToken cancelToken) =>
         {
-            if (Config.Get("DatapathFixEnabled", true) && File.Exists(DatapathFix) && File.Exists(EADesktop.FullPath))
+            if (Config.Get("DatapathFixEnabled", true) && File.Exists(DatapathFix))
             {
                 string game = Path.Combine(App.FileSystem.BasePath, $"{ProfilesLibrary.ProfileName}.exe");
 
                 logger.Log("Waiting For Game");
-                Thread.Sleep(8000);
-                WaitForProcess(game.Replace(".exe", ".orig.exe"));
+                Thread.Sleep(4000);
+                WaitForProcess(game);
 
                 ResetGameDirectory(game);
             }
@@ -86,12 +54,8 @@ namespace DatapathFixPlugin.Actions
 
         private void ResetGameDirectory(string game)
         {
+            File.Delete(game.Replace(".exe", ".old"));
             File.Delete(Path.Combine(App.FileSystem.BasePath, "tmp"));
-            if (File.Exists(game.Replace(".exe", ".orig.exe")))
-            {
-                File.Delete(game);
-                File.Move(game.Replace(".exe", ".orig.exe"), game);
-            }
         }
 
         private void WaitForProcess(string name)
@@ -99,8 +63,8 @@ namespace DatapathFixPlugin.Actions
             Stopwatch s = new Stopwatch();
             s.Start();
 
-            // Check only for the next 12 seconds to prevent lockup
-            while (s.Elapsed < TimeSpan.FromSeconds(12))
+            // Check only for the next 8 seconds to prevent lockup
+            while (s.Elapsed < TimeSpan.FromSeconds(8))
             {
                 Process[] processes = Process.GetProcessesByName(Path.GetFileNameWithoutExtension(name));
 
