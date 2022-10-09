@@ -68,7 +68,7 @@ namespace DatapathFixPlugin.Actions
 
                 logger.Log("Waiting For Game");
                 Thread.Sleep(8000);
-                WaitForProcess(game);
+                WaitForProcess(game.Replace(".exe", ".orig.exe"));
 
                 ResetGameDirectory(game);
             }
