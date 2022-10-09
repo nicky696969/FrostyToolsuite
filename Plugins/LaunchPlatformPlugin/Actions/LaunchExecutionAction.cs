@@ -8,9 +8,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Threading;
-using LaunchPlatformPlugin.Options;
 
-namespace LaunchPlatformPlugin.Actions
+namespace DatapathFixPlugin.Actions
 {
 
     public static class EADesktop
@@ -28,42 +27,46 @@ namespace LaunchPlatformPlugin.Actions
 
     public class LaunchExecutionAction : ExecutionAction
     {
+        public string DatapathFix = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "DatapathFix.exe");
+
         public override Action<ILogger, PluginManagerType, CancellationToken> PreLaunchAction => new Action<ILogger, PluginManagerType, CancellationToken>((ILogger logger, PluginManagerType type, CancellationToken cancelToken) =>
         {
-            foreach (Process p in Process.GetProcesses()) {
-                if (p.ProcessName == EADesktop.ProcessName) {
-                    p.Kill();
-                }
-            }
-
             string game = Path.Combine(App.FileSystem.BasePath, $"{ProfilesLibrary.ProfileName}.exe");
-            string dpFix = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "DatapathFix.exe");
-
-            string cmdArgs = $"-dataPath \"{Path.Combine(App.FileSystem.BasePath, $"ModData\\{App.SelectedPack}")}\"";
-
             ResetGameDirectory(game);
             Thread.Sleep(1000);
 
-            File.WriteAllText(Path.Combine(App.FileSystem.BasePath, "tmp"), cmdArgs);
-            File.Move(game, game.Replace(".exe", ".orig.exe"));
-            File.Copy(dpFix, game, true);
+            if (Config.Get("DatapathFixEnabled", true) && File.Exists(DatapathFix) && File.Exists(EADesktop.FullPath)) {
+                foreach (Process p in Process.GetProcesses()) {
+                    if (p.ProcessName == EADesktop.ProcessName) {
+                        p.Kill();
+                    }
+                }
 
-            FrostyModExecutor.ExecuteProcess(EADesktop.FullPath, "", false, false);
+                string cmdArgs = $"-dataPath \"{Path.Combine(App.FileSystem.BasePath, $"ModData\\{App.SelectedPack}")}\"";         
 
-            logger.Log("Waiting For EA Desktop");
-            Thread.Sleep(12000);
-            WaitForProcess(EADesktop.ProcessName);
+                File.WriteAllText(Path.Combine(App.FileSystem.BasePath, "tmp"), cmdArgs);
+                File.Move(game, game.Replace(".exe", ".orig.exe"));
+                File.Copy(DatapathFix, game, true);
+
+                FrostyModExecutor.ExecuteProcess(EADesktop.FullPath, "", false, false);
+
+                logger.Log("Waiting For EA Desktop");
+                Thread.Sleep(12000);
+                WaitForProcess(EADesktop.ProcessName);
+            }
         });
 
         public override Action<ILogger, PluginManagerType, CancellationToken> PostLaunchAction => new Action<ILogger, PluginManagerType, CancellationToken>((ILogger logger, PluginManagerType type, CancellationToken cancelToken) =>
         {
-            string game = Path.Combine(App.FileSystem.BasePath, $"{ProfilesLibrary.ProfileName}.exe");
+            if (Config.Get("DatapathFixEnabled", true) && File.Exists(DatapathFix) && File.Exists(EADesktop.FullPath)) {
+                string game = Path.Combine(App.FileSystem.BasePath, $"{ProfilesLibrary.ProfileName}.exe");
 
-            logger.Log("Waiting For Game");
-            Thread.Sleep(8000);
-            WaitForProcess(game);
+                logger.Log("Waiting For Game");
+                Thread.Sleep(8000);
+                WaitForProcess(game);
 
-            ResetGameDirectory(game);
+                ResetGameDirectory(game);
+            }
         });
 
         private void ResetGameDirectory(string game) {

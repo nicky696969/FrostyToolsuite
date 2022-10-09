@@ -3,8 +3,8 @@
     <Configurations>Developer - Debug;Release - Alpha;Release - Beta;Release - Final</Configurations>
     <Platforms>x64</Platforms>
     <TargetFrameworks>net48</TargetFrameworks>
-    <AssemblyTitle>BlankPlugin</AssemblyTitle>
-    <Product>BlankPlugin</Product>
+    <AssemblyTitle>DatapathFixPlugin</AssemblyTitle>
+    <Product>DatapathFixPlugin</Product>
     <Copyright>Copyright ©  2020</Copyright>
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>

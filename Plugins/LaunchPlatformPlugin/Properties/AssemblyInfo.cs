@@ -1,8 +1,6 @@
 ﻿using Frosty.Core.Attributes;
-using LaunchPlatformPlugin.Actions;
-using LaunchPlatformPlugin.Options;
-using System.Reflection;
-using System.Runtime.CompilerServices;
+using DatapathFixPlugin.Actions;
+using DatapathFixPlugin.Options;
 using System.Runtime.InteropServices;
 using System.Windows;
 
@@ -23,8 +21,8 @@ using System.Windows;
 // The following GUID is for the ID of the typelib if this project is exposed to COM
 [assembly: Guid("4b612468-9b6a-4304-88a5-055c3575eb3d")]
 
-[assembly: PluginDisplayName("Launch Platform")]
-[assembly: PluginAuthor("Cade")]
+[assembly: PluginDisplayName("DatapathFix")]
+[assembly: PluginAuthor("Dyvinia")]
 [assembly: PluginVersion("1.0.0.0")]
 
 [assembly: RegisterOptionsExtension(typeof(LaunchOptions), Frosty.Core.PluginManagerType.Both)]

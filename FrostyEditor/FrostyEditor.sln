@@ -93,7 +93,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ReferencesPlugin", "..\Plug
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RootInstanceEntriesPlugin", "..\Plugins\RootInstanceEntriesPlugin\RootInstanceEntriesPlugin.csproj", "{FE2D780C-8FBC-4797-9ACD-05DE2507F1AA}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LaunchPlatformPlugin", "..\Plugins\LaunchPlatformPlugin\LaunchPlatformPlugin.csproj", "{7F280BF3-F794-4715-9D32-770D36454B8C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DatapathFixPlugin", "..\Plugins\LaunchPlatformPlugin\DatapathFixPlugin.csproj", "{7F280BF3-F794-4715-9D32-770D36454B8C}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FrostyCmd", "..\FrostyCmd\FrostyCmd.csproj", "{500ACAB7-D948-4BCA-8208-20812D712DDB}"
 EndProject
