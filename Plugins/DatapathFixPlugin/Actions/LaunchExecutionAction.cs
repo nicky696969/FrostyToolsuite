@@ -1,13 +1,13 @@
-﻿using Frosty.Core;
-using Frosty.ModSupport;
-using FrostySdk;
-using FrostySdk.Interfaces;
-using Microsoft.Win32;
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Threading;
+using Frosty.Core;
+using Frosty.ModSupport;
+using FrostySdk;
+using FrostySdk.Interfaces;
+using Microsoft.Win32;
 
 namespace DatapathFixPlugin.Actions
 {
@@ -16,8 +16,10 @@ namespace DatapathFixPlugin.Actions
     {
         public static string ProcessName => "EADesktop";
 
-        public static string FullPath {
-            get {
+        public static string FullPath
+        {
+            get
+            {
                 using (RegistryKey lmKey = Registry.LocalMachine.OpenSubKey($"SOFTWARE\\WOW6432Node\\Electronic Arts\\EA Desktop"))
                 {
                     return lmKey.GetValue("DesktopAppPath")?.ToString();
@@ -57,6 +59,14 @@ namespace DatapathFixPlugin.Actions
                 logger.Log("Waiting For EA Desktop");
                 Thread.Sleep(12000);
                 WaitForProcess(EADesktop.ProcessName);
+            }
+            else if (!File.Exists(DatapathFix))
+            {
+                App.Logger.LogError("Cannot find DatapathFix.exe");
+            }
+            else if (!File.Exists(EADesktop.FullPath))
+            {
+                App.Logger.LogError("Cannot find EA Desktop installation");
             }
         });
 
