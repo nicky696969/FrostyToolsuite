@@ -18,7 +18,8 @@ namespace DatapathFixPlugin.Actions
 
         public static string FullPath {
             get {
-                using (RegistryKey lmKey = Registry.LocalMachine.OpenSubKey($"SOFTWARE\\WOW6432Node\\Electronic Arts\\EA Desktop")) {
+                using (RegistryKey lmKey = Registry.LocalMachine.OpenSubKey($"SOFTWARE\\WOW6432Node\\Electronic Arts\\EA Desktop"))
+                {
                     return lmKey.GetValue("DesktopAppPath")?.ToString();
                 }
             }
@@ -35,14 +36,17 @@ namespace DatapathFixPlugin.Actions
             ResetGameDirectory(game);
             Thread.Sleep(1000);
 
-            if (Config.Get("DatapathFixEnabled", true) && File.Exists(DatapathFix) && File.Exists(EADesktop.FullPath)) {
-                foreach (Process p in Process.GetProcesses()) {
-                    if (p.ProcessName == EADesktop.ProcessName) {
+            if (Config.Get("DatapathFixEnabled", true) && File.Exists(DatapathFix) && File.Exists(EADesktop.FullPath))
+            {
+                foreach (Process p in Process.GetProcesses())
+                {
+                    if (p.ProcessName == EADesktop.ProcessName)
+                    {
                         p.Kill();
                     }
                 }
 
-                string cmdArgs = $"-dataPath \"{Path.Combine(App.FileSystem.BasePath, $"ModData\\{App.SelectedPack}")}\"";         
+                string cmdArgs = $"-dataPath \"{Path.Combine(App.FileSystem.BasePath, $"ModData\\{App.SelectedPack}")}\"";
 
                 File.WriteAllText(Path.Combine(App.FileSystem.BasePath, "tmp"), cmdArgs);
                 File.Move(game, game.Replace(".exe", ".orig.exe"));
@@ -58,7 +62,8 @@ namespace DatapathFixPlugin.Actions
 
         public override Action<ILogger, PluginManagerType, CancellationToken> PostLaunchAction => new Action<ILogger, PluginManagerType, CancellationToken>((ILogger logger, PluginManagerType type, CancellationToken cancelToken) =>
         {
-            if (Config.Get("DatapathFixEnabled", true) && File.Exists(DatapathFix) && File.Exists(EADesktop.FullPath)) {
+            if (Config.Get("DatapathFixEnabled", true) && File.Exists(DatapathFix) && File.Exists(EADesktop.FullPath))
+            {
                 string game = Path.Combine(App.FileSystem.BasePath, $"{ProfilesLibrary.ProfileName}.exe");
 
                 logger.Log("Waiting For Game");
@@ -69,9 +74,11 @@ namespace DatapathFixPlugin.Actions
             }
         });
 
-        private void ResetGameDirectory(string game) {
+        private void ResetGameDirectory(string game)
+        {
             File.Delete(Path.Combine(App.FileSystem.BasePath, "tmp"));
-            if (File.Exists(game.Replace(".exe", ".orig.exe"))) {
+            if (File.Exists(game.Replace(".exe", ".orig.exe")))
+            {
                 File.Delete(game);
                 File.Move(game.Replace(".exe", ".orig.exe"), game);
             }
@@ -82,11 +89,13 @@ namespace DatapathFixPlugin.Actions
             Stopwatch s = new Stopwatch();
             s.Start();
 
-            // Check only for the next 24 seconds
-            while (s.Elapsed < TimeSpan.FromSeconds(24)) {
+            // Check only for the next 12 seconds to prevent lockup
+            while (s.Elapsed < TimeSpan.FromSeconds(12))
+            {
                 Process[] processes = Process.GetProcessesByName(Path.GetFileNameWithoutExtension(name));
 
-                if (processes.Length > 0) {
+                if (processes.Length > 0)
+                {
                     return;
                 }
             }
