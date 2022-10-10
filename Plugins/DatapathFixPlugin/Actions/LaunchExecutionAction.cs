@@ -4,10 +4,8 @@ using System.IO;
 using System.Reflection;
 using System.Threading;
 using Frosty.Core;
-using Frosty.ModSupport;
 using FrostySdk;
 using FrostySdk.Interfaces;
-using Microsoft.Win32;
 
 namespace DatapathFixPlugin.Actions
 {
@@ -26,9 +24,16 @@ namespace DatapathFixPlugin.Actions
             {
                 string cmdArgs = $"-dataPath \"{Path.Combine(App.FileSystem.BasePath, $"ModData\\{App.SelectedPack}")}\"";
 
-                File.WriteAllText(Path.Combine(App.FileSystem.BasePath, "tmp"), cmdArgs);
-                File.Move(game, game.Replace(".exe", ".orig.exe"));
-                File.Copy(DatapathFix, game, true);
+                try
+                {
+                    File.WriteAllText(Path.Combine(App.FileSystem.BasePath, "tmp"), cmdArgs);
+                    File.Move(game, game.Replace(".exe", ".orig.exe"));
+                    File.Copy(DatapathFix, game, true);
+                }
+                catch (Exception ex)
+                {
+                    App.Logger.LogError(ex.Message);
+                }
 
                 Thread.Sleep(1000);
             }
@@ -54,8 +59,15 @@ namespace DatapathFixPlugin.Actions
 
         private void ResetGameDirectory(string game)
         {
-            File.Delete(game.Replace(".exe", ".old"));
-            File.Delete(Path.Combine(App.FileSystem.BasePath, "tmp"));
+            try
+            {
+                File.Delete(game.Replace(".exe", ".old"));
+                File.Delete(Path.Combine(App.FileSystem.BasePath, "tmp"));
+            }
+            catch (Exception ex)
+            {
+                App.Logger.LogError(ex.Message);
+            }
         }
 
         private void WaitForProcess(string name)

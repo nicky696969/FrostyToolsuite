@@ -9,7 +9,7 @@ namespace DatapathFixPlugin.Options
     {
         [Category("General")]
         [Description("Enables the DatapathFix system for EA Desktop.")]
-        [DisplayName("Platform Launching Enabled")]
+        [DisplayName("DatapathFix Enabled")]
         [EbxFieldMeta(FrostySdk.IO.EbxFieldType.Boolean)]
         public bool DatapathFixEnabled { get; set; } = true;
 
