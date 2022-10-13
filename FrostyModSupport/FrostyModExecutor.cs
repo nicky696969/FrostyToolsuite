@@ -17,6 +17,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+using FrostySdk.Managers.Entries;
 
 namespace Frosty.ModSupport
 {
@@ -191,7 +192,7 @@ namespace Frosty.ModSupport
         [DllImport("kernel32.dll")]
         static extern bool CreateSymbolicLink(string lpSymlinkFileName, string lpTargetFileName, int dwFlags);
 
-        private FileSystem fs;
+        private FileSystemManager fs;
         private ResourceManager rm;
         private AssetManager am;
         private ILogger logger;
@@ -219,7 +220,7 @@ namespace Frosty.ModSupport
 
         private void ReportProgress(int current, int total) => Logger.Log("progress:" + current / (float)total * 100d);
 
-        private Dictionary<int, Dictionary<uint, CatResourceEntry>> LoadCatalog(FileSystem fs, string filename, out int catFileHash)
+        private Dictionary<int, Dictionary<uint, CatResourceEntry>> LoadCatalog(FileSystemManager fs, string filename, out int catFileHash)
         {
             catFileHash = 0;
             string fullPath = fs.ResolvePath(filename);
@@ -548,8 +549,12 @@ namespace Frosty.ModSupport
                                 entry.OriginalSize = chunkEntry.OriginalSize;
                                 entry.LogicalSize = chunkEntry.LogicalSize;
                                 entry.LogicalOffset = chunkEntry.LogicalOffset;
-                                entry.RangeStart = chunkEntry.RangeStart;
-                                entry.RangeEnd = chunkEntry.RangeEnd;
+                                
+                                if (chunkEntry.RangeStart != 0 && chunkEntry.RangeEnd != 0)
+                                {
+                                    entry.RangeStart = chunkEntry.RangeStart;
+                                    entry.RangeEnd = chunkEntry.RangeEnd;
+                                }
 
                                 if (ProfilesLibrary.IsLoaded(ProfileVersion.StarWarsBattlefrontII, ProfileVersion.Battlefield5))
                                 {
@@ -557,47 +562,8 @@ namespace Frosty.ModSupport
                                     {
                                         entry.TocChunkSpecialHack = true;
                                         if (chunkEntry.Bundles.Count == 0)
-                                            resource.ClearAddedBundles();
-
-                                        else if (entry.FirstMip != -1)
                                         {
-                                            // need to calculate range start, since manifest bundle layouts don't store it directly
-                                            // however it is used to store chunk portions in bundles
-                                            // @todo: Move to mod export
-
-                                            using (NativeReader reader = new NativeReader(new MemoryStream(data)))
-                                            {
-                                                long logicalOffset = entry.LogicalOffset;
-                                                uint size = 0;
-
-                                                while (true)
-                                                {
-                                                    int decompressedSize = reader.ReadInt(Endian.Big);
-                                                    ushort compressionType = reader.ReadUShort();
-                                                    int bufferSize = reader.ReadUShort(Endian.Big);
-
-                                                    int flags = ((compressionType & 0xFF00) >> 8);
-
-                                                    if ((flags & 0x0F) != 0)
-                                                        bufferSize = ((flags & 0x0F) << 0x10) + bufferSize;
-                                                    if ((decompressedSize & 0xFF000000) != 0)
-                                                        decompressedSize &= 0x00FFFFFF;
-
-                                                    logicalOffset -= decompressedSize;
-                                                    if (logicalOffset < 0)
-                                                        break;
-
-                                                    compressionType = (ushort)(compressionType & 0x7F);
-                                                    if (compressionType == 0x00)
-                                                        bufferSize = decompressedSize;
-
-                                                    size += (uint)(bufferSize + 8);
-                                                    reader.Position += bufferSize;
-                                                }
-
-                                                entry.RangeStart = size;
-                                                entry.RangeEnd = (uint)data.Length;
-                                            }
+                                            resource.ClearAddedBundles();
                                         }
                                     }
                                 }
@@ -974,7 +940,7 @@ namespace Frosty.ModSupport
             }
         }
 
-        public int Run(FileSystem inFs, CancellationToken cancelToken, ILogger inLogger, string rootPath, string modPackName, string additionalArgs, params string[] modPaths)
+        public int Run(FileSystemManager inFs, CancellationToken cancelToken, ILogger inLogger, string rootPath, string modPackName, string additionalArgs, params string[] modPaths)
         {
             modDirName = "ModData\\" + modPackName;
             cancelToken.ThrowIfCancellationRequested();
@@ -1628,7 +1594,10 @@ namespace Frosty.ModSupport
 
                 int totalEntries = casData.CountEntries();
                 int currentEntry = 0;
-                ReportProgress(currentEntry, totalEntries);
+                if (totalEntries > 0)
+                {
+                    ReportProgress(currentEntry, totalEntries);
+                }
 
                 // write out cas and modify cats
                 foreach (CasDataEntry entry in casData.EnumerateEntries())

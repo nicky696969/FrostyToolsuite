@@ -19,6 +19,7 @@ using System.Runtime.InteropServices;
 using System.Windows.Input;
 using System.IO;
 using System.Diagnostics;
+using FrostySdk.Managers.Entries;
 
 namespace Frosty.Core.Windows
 {

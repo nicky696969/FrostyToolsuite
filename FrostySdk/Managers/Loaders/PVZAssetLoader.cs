@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using FrostySdk.Managers.Entries;
 
 namespace FrostySdk.Managers
 {
@@ -11,7 +12,7 @@ namespace FrostySdk.Managers
         {
             public void Load(AssetManager parent, BinarySbDataHelper helper)
             {
-                foreach (string sbName in parent.m_fs.SuperBundles)
+                foreach (string sbName in parent.m_fileSystem.SuperBundles)
                 //foreach (CatalogInfo catalog in parent.fs.EnumerateCatalogInfos())
                 {
                     //foreach (string sbName in catalog.SuperBundles.Keys)
@@ -41,13 +42,13 @@ namespace FrostySdk.Managers
                         List<BaseBundleInfo> baseBundles = new List<BaseBundleInfo>();
                         List<BaseBundleInfo> patchBundles = new List<BaseBundleInfo>();
 
-                        string tocPath = parent.m_fs.ResolvePath(string.Format("native_data/{0}.toc", sbPath));
+                        string tocPath = parent.m_fileSystem.ResolvePath(string.Format("native_data/{0}.toc", sbPath));
                         if (tocPath != "")
                         {
                             int[] values = new int[12];
                             byte[] buffer = null;
 
-                            using (NativeReader reader = new NativeReader(new FileStream(tocPath, FileMode.Open, FileAccess.Read), parent.m_fs.CreateDeobfuscator()))
+                            using (NativeReader reader = new NativeReader(new FileStream(tocPath, FileMode.Open, FileAccess.Read), parent.m_fileSystem.CreateDeobfuscator()))
                             {
                                 for (int i = 0; i < 12; i++)
                                     values[i] = reader.ReadInt(Endian.Big);
@@ -143,7 +144,7 @@ namespace FrostySdk.Managers
                                                 Location = AssetDataLocation.CasNonIndexed,
                                                 ExtraData = new AssetExtraData
                                                 {
-                                                    CasPath = parent.m_fs.GetFilePath(catalogIndex, casIndex, isPatch),
+                                                    CasPath = parent.m_fileSystem.GetFilePath(catalogIndex, casIndex, isPatch),
                                                     DataOffset = offset
                                                 }
                                             };
@@ -156,13 +157,13 @@ namespace FrostySdk.Managers
                             }
                         }
 
-                        tocPath = parent.m_fs.ResolvePath(string.Format("native_patch/{0}.toc", sbPath));
+                        tocPath = parent.m_fileSystem.ResolvePath(string.Format("native_patch/{0}.toc", sbPath));
                         if (tocPath != "")
                         {
                             int[] values = new int[12];
                             byte[] buffer = null;
 
-                            using (NativeReader reader = new NativeReader(new FileStream(tocPath, FileMode.Open, FileAccess.Read), parent.m_fs.CreateDeobfuscator()))
+                            using (NativeReader reader = new NativeReader(new FileStream(tocPath, FileMode.Open, FileAccess.Read), parent.m_fileSystem.CreateDeobfuscator()))
                             {
                                 for (int i = 0; i < 12; i++)
                                     values[i] = reader.ReadInt(Endian.Big);
@@ -171,7 +172,7 @@ namespace FrostySdk.Managers
 
                             if (buffer.Length != 0)
                             {
-                                NativeReader baseMf = new NativeReader(new FileStream(parent.m_fs.ResolvePath(string.Format("{0}.sb", sbPath)), FileMode.Open, FileAccess.Read));
+                                NativeReader baseMf = new NativeReader(new FileStream(parent.m_fileSystem.ResolvePath(string.Format("{0}.sb", sbPath)), FileMode.Open, FileAccess.Read));
                                 using (NativeReader reader = new NativeReader(new MemoryStream(buffer)))
                                 {
                                     //List<int> unkList = new List<int>();
@@ -248,7 +249,7 @@ namespace FrostySdk.Managers
                                                 Location = AssetDataLocation.CasNonIndexed,
                                                 ExtraData = new AssetExtraData
                                                 {
-                                                    CasPath = parent.m_fs.GetFilePath(catalogIndex, casIndex, isPatch),
+                                                    CasPath = parent.m_fileSystem.GetFilePath(catalogIndex, casIndex, isPatch),
                                                     DataOffset = offset
                                                 }
                                             };
@@ -263,7 +264,7 @@ namespace FrostySdk.Managers
 
                         if (baseBundles.Count > 0)
                         {
-                            using (NativeReader baseMf = new NativeReader(new FileStream(parent.m_fs.ResolvePath(string.Format("native_data/{0}.sb", sbPath)), FileMode.Open, FileAccess.Read)))
+                            using (NativeReader baseMf = new NativeReader(new FileStream(parent.m_fileSystem.ResolvePath(string.Format("native_data/{0}.sb", sbPath)), FileMode.Open, FileAccess.Read)))
                             {
                                 foreach (BaseBundleInfo bi in baseBundles)
                                 {
@@ -274,7 +275,7 @@ namespace FrostySdk.Managers
                                     Stream stream = baseMf.CreateViewStream(bi.Offset, bi.Size);
 
                                     DbObject bundle = null;
-                                    using (BinarySbReader bundleReader = new BinarySbReader(stream, parent.m_fs.CreateDeobfuscator()))
+                                    using (BinarySbReader bundleReader = new BinarySbReader(stream, parent.m_fileSystem.CreateDeobfuscator()))
                                     {
                                         uint headerSize = bundleReader.ReadUInt(Endian.Big);
                                         uint dataOffset = bundleReader.ReadUInt(Endian.Big) + headerSize;
@@ -371,7 +372,7 @@ namespace FrostySdk.Managers
 
                         if (patchBundles.Count > 0)
                         {
-                            using (NativeReader patchMf = new NativeReader(new FileStream(parent.m_fs.ResolvePath(string.Format("native_patch/{0}.sb", sbPath)), FileMode.Open, FileAccess.Read)))
+                            using (NativeReader patchMf = new NativeReader(new FileStream(parent.m_fileSystem.ResolvePath(string.Format("native_patch/{0}.sb", sbPath)), FileMode.Open, FileAccess.Read)))
                             {
                                 foreach (BaseBundleInfo bi in patchBundles)
                                 {
@@ -382,7 +383,7 @@ namespace FrostySdk.Managers
                                     Stream stream = patchMf.CreateViewStream(bi.Offset, bi.Size);
 
                                     DbObject bundle = null;
-                                    using (BinarySbReader bundleReader = new BinarySbReader(stream, parent.m_fs.CreateDeobfuscator()))
+                                    using (BinarySbReader bundleReader = new BinarySbReader(stream, parent.m_fileSystem.CreateDeobfuscator()))
                                     {
                                         uint headerSize = bundleReader.ReadUInt(Endian.Big);
                                         uint dataOffset = bundleReader.ReadUInt(Endian.Big) + headerSize;

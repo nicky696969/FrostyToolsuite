@@ -27,6 +27,7 @@ using Frosty.Core.IO;
 using FrostyCore;
 using Frosty.Core.Controls;
 using System.IO.Compression;
+using FrostySdk.Managers.Entries;
 using Newtonsoft.Json;
 
 namespace FrostyModManager
@@ -279,7 +280,7 @@ namespace FrostyModManager
         private List<IFrostyMod> availableMods = new List<IFrostyMod>();
         private List<FrostyPack> packs = new List<FrostyPack>();
         private FrostyPack selectedPack;
-        private FileSystem fs;
+        private FileSystemManager fs => Frosty.Core.App.FileSystemManager;
 
         private static int manifestVersion = 1;
 
@@ -296,26 +297,26 @@ namespace FrostyModManager
         {
             (App.Logger as FrostyLogger).AddBinding(tb, TextBox.TextProperty);
 
-            string gamePath = Config.Get<string>("GamePath", "", ConfigScope.Game);
-
-            if (!ProfilesLibrary.EnableExecution)
+            string selectedProfileName = FrostyProfileSelectWindow.Show();
+            if (!string.IsNullOrEmpty(selectedProfileName))
             {
-                FrostyMessageBox.Show("The selected profile is a read-only profile, and therefore cannot be loaded in the mod manager", "Frosty Mod Manager");
+                Frosty.Core.App.ClearProfileData();
+                if (!Frosty.Core.App.LoadProfile(selectedProfileName))
+                {
+                    Closing -= FrostyWindow_Closing;
+                    Close();
+                    return;
+                }
+            }
+            else
+            {
                 Closing -= FrostyWindow_Closing;
                 Close();
                 return;
             }
 
-            fs = new FileSystem(gamePath);
-            foreach (FileSystemSource source in ProfilesLibrary.Sources)
-                fs.AddSource(source.Path, source.SubDirs);
-            fs.Initialize();
-
             Config.Save();
             Title = "Frosty Mod Manager - " + Frosty.Core.App.Version + " (" + ProfilesLibrary.DisplayName + ")";
-
-            TypeLibrary.Initialize();
-            App.PluginManager.Initialize();
 
             FrostyTaskWindow.Show("Loading Mods", "", (task) =>
             {
@@ -431,11 +432,11 @@ namespace FrostyModManager
             optionsMenuItem.Click += optionsMenuItem_Click;
             toolsMenuItem.Items.Add(optionsMenuItem);
 
-            string selectedProfileName = Config.Get<string>("SelectedPack", "", ConfigScope.Game);
+            string selectedPackName = Config.Get<string>("SelectedPack", "", ConfigScope.Game);
             int selectedIndex = 0;
-            if (selectedProfileName != null)
+            if (selectedPackName != null)
             {
-                selectedIndex = packs.FindIndex((FrostyPack a) => a.Name == selectedProfileName);
+                selectedIndex = packs.FindIndex((FrostyPack a) => a.Name == selectedPackName);
                 if (selectedIndex == -1)
                     selectedIndex = 0;
             }
@@ -607,10 +608,10 @@ namespace FrostyModManager
             Config.Save();
 
             // initialize
-            Frosty.Core.App.FileSystem = new FileSystem(Config.Get<string>("GamePath", "", ConfigScope.Game));
+            Frosty.Core.App.FileSystemManager = new FileSystemManager(Config.Get<string>("GamePath", "", ConfigScope.Game));
             foreach (FileSystemSource source in ProfilesLibrary.Sources)
-                Frosty.Core.App.FileSystem.AddSource(source.Path, source.SubDirs);
-            Frosty.Core.App.FileSystem.Initialize();
+                Frosty.Core.App.FileSystemManager.AddSource(source.Path, source.SubDirs);
+            Frosty.Core.App.FileSystemManager.Initialize();
 
             // Set selected pack
             App.SelectedPack = selectedPack.Name;

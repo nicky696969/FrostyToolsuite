@@ -12,6 +12,8 @@ using System.Runtime.InteropServices;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
+using FrostySdk.Managers.Entries;
+using System.Text;
 
 namespace FrostySdk
 {
@@ -360,27 +362,37 @@ namespace FrostySdk
             {
                 switch (ProfilesLibrary.DataVersion)
                 {
-                    case (int)ProfileVersion.NeedForSpeedRivals: return 4;
-                    case (int)ProfileVersion.PlantsVsZombiesGardenWarfare: return 4;
-                    case (int)ProfileVersion.DragonAgeInquisition: return 4;
-                    case (int)ProfileVersion.Battlefield4: return 4;
-                    case (int)ProfileVersion.PlantsVsZombiesGardenWarfare2: return 4;
-                    case (int)ProfileVersion.NeedForSpeed: return 4;
-                    case (int)ProfileVersion.NeedForSpeedEdge: return 4;
-                    case (int)ProfileVersion.StarWarsBattlefront: return 6;
-                    case (int)ProfileVersion.Battlefield5: return 8;
-                    case (int)ProfileVersion.StarWarsBattlefrontII: return 16;
-                    case (int)ProfileVersion.Fifa18: return 16;
-                    case (int)ProfileVersion.Madden19: return 16;
-                    case (int)ProfileVersion.NeedForSpeedPayback: return 16;
-                    case (int)ProfileVersion.Fifa19: return 16;
-                    case (int)ProfileVersion.Anthem: return 16;
-                    case (int)ProfileVersion.Madden20: return 16;
-                    case (int)ProfileVersion.PlantsVsZombiesBattleforNeighborville: return 16;
-                    case (int)ProfileVersion.NeedForSpeedHeat: return 16;
-                    case (int)ProfileVersion.Fifa20: return 16;
-                    case (int)ProfileVersion.StarWarsSquadrons: return 16;
-                    default: return 8;
+                    case (int)ProfileVersion.NeedForSpeedRivals:
+                    case (int)ProfileVersion.PlantsVsZombiesGardenWarfare:
+                    case (int)ProfileVersion.DragonAgeInquisition:
+                    case (int)ProfileVersion.Battlefield4:
+                    case (int)ProfileVersion.PlantsVsZombiesGardenWarfare2:
+                    case (int)ProfileVersion.NeedForSpeed:
+                    case (int)ProfileVersion.NeedForSpeedEdge:
+                        return 4;
+                    case (int)ProfileVersion.StarWarsBattlefront:
+                        return 6;
+                    case (int)ProfileVersion.Battlefield5:
+                        return 8;
+                    case (int)ProfileVersion.StarWarsBattlefrontII:
+                    case (int)ProfileVersion.Fifa18:
+                    case (int)ProfileVersion.Madden19:
+                    case (int)ProfileVersion.NeedForSpeedPayback:
+                    case (int)ProfileVersion.Fifa19:
+                    case (int)ProfileVersion.Anthem:
+                    case (int)ProfileVersion.Madden20:
+                    case (int)ProfileVersion.PlantsVsZombiesBattleforNeighborville:
+                    case (int)ProfileVersion.NeedForSpeedHeat:
+                    case (int)ProfileVersion.Fifa20:
+                    case (int)ProfileVersion.StarWarsSquadrons:
+                    case (int)ProfileVersion.Fifa21:
+                    case (int)ProfileVersion.Madden22:
+                    case (int)ProfileVersion.Fifa22:
+                    case (int)ProfileVersion.Battlefield2042:
+                    case (int)ProfileVersion.Madden23:
+                        return 16;
+                    default:
+                        return 8;
                 }
             }
         }
@@ -490,7 +502,10 @@ namespace FrostySdk
 
             Decompress = Marshal.GetDelegateForFunctionPointer<DecompressFunc>(Kernel32.GetProcAddress(handle, "OodleLZ_Decompress"));
             Compress = Marshal.GetDelegateForFunctionPointer<CompressFunc>(Kernel32.GetProcAddress(handle, "OodleLZ_Compress"));
-            if (ProfilesLibrary.DataVersion == (int)ProfileVersion.Fifa19 || ProfilesLibrary.DataVersion == (int)ProfileVersion.Fifa20 || ProfilesLibrary.DataVersion == (int)ProfileVersion.PlantsVsZombiesBattleforNeighborville || ProfilesLibrary.DataVersion == (int)ProfileVersion.NeedForSpeedHeat)
+            if (ProfilesLibrary.IsLoaded(ProfileVersion.Fifa19, ProfileVersion.Fifa20,
+                ProfileVersion.PlantsVsZombiesBattleforNeighborville, ProfileVersion.NeedForSpeedHeat,
+                ProfileVersion.Fifa21, ProfileVersion.Fifa22,
+                ProfileVersion.Battlefield2042))
             {
                 Compress2 = Marshal.GetDelegateForFunctionPointer<CompressFunc2>(Kernel32.GetProcAddress(handle, "OodleLZ_Compress"));
             }
@@ -588,11 +603,11 @@ namespace FrostySdk
             CompressBound = Marshal.GetDelegateForFunctionPointer<CompressBoundFunc>(Kernel32.GetProcAddress(handle, "ZSTD_compressBound"));
             IsError = Marshal.GetDelegateForFunctionPointer<IsErrorFunc>(Kernel32.GetProcAddress(handle, "ZSTD_isError"));
 
-            if (ProfilesLibrary.DataVersion != (int)ProfileVersion.Fifa17)
+            if (!ProfilesLibrary.IsLoaded(ProfileVersion.Fifa17))
             {
                 GetErrorCode = Marshal.GetDelegateForFunctionPointer<GetErrorCodeFunc>(Kernel32.GetProcAddress(handle, "ZSTD_getErrorCode"));
                 GetErrorName = Marshal.GetDelegateForFunctionPointer<GetErrorNameFunc>(Kernel32.GetProcAddress(handle, "ZSTD_getErrorName"));
-                if (ProfilesLibrary.DataVersion == (int)ProfileVersion.Fifa18 || ProfilesLibrary.DataVersion == (int)ProfileVersion.Fifa19 || ProfilesLibrary.DataVersion == (int)ProfileVersion.Fifa20)
+                if (ProfilesLibrary.IsLoaded(ProfileVersion.Fifa18, ProfileVersion.Fifa19, ProfileVersion.Fifa20, ProfileVersion.Fifa21, ProfileVersion.Fifa22))
                 {
                     DecompressUsingDict = Marshal.GetDelegateForFunctionPointer<DecompressUsingDictFunc>(Kernel32.GetProcAddress(handle, "ZSTD_decompress_usingDDict"));
                     CreateDigestedDict = Marshal.GetDelegateForFunctionPointer<CreateDigestedDictFunc>(Kernel32.GetProcAddress(handle, "ZSTD_createDDict"));
@@ -674,6 +689,16 @@ namespace FrostySdk
 
     public static class Utils
     {
+        public static string ToHex(this Guid guid)
+        {
+            StringBuilder sb = new StringBuilder();
+            foreach (byte b in guid.ToByteArray())
+            {
+                sb.Append(b.ToString("x2"));
+            }
+            return sb.ToString();
+        }
+
         public static Guid GenerateDeterministicGuid(IEnumerable<object> objects, string type, Guid fileGuid)
         {
             return GenerateDeterministicGuid(objects, TypeLibrary.GetType(type), fileGuid);
@@ -768,25 +793,11 @@ namespace FrostySdk
 
         public static string GetString(int hash)
         {
-            if (strings.Count == 0)
+            if (!strings.ContainsKey(hash))
             {
-                if (File.Exists("strings.txt"))
-                {
-                    using (NativeReader reader = new NativeReader(new FileStream("strings.txt", FileMode.Open, FileAccess.Read)))
-                    {
-                        while (reader.Position < reader.Length)
-                        {
-                            string str = reader.ReadLine();
-                            int strHash = Fnv1.HashString(str);
-                            if (!strings.ContainsKey(strHash))
-                                strings.Add(strHash, str);
-                        }
-                    }
-                }
+                return "0x" + hash.ToString("x8");
             }
 
-            if (!strings.ContainsKey(hash))
-                return "0x" + hash.ToString("x8");
             return strings[hash];
         }
 
@@ -853,7 +864,7 @@ namespace FrostySdk
         {
             get
             {
-                if (ProfilesLibrary.DataVersion == (int)ProfileVersion.Fifa18 || ProfilesLibrary.DataVersion == (int)ProfileVersion.Fifa19 || ProfilesLibrary.DataVersion == (int)ProfileVersion.Fifa20)
+                if (ProfilesLibrary.IsLoaded(ProfileVersion.Fifa18, ProfileVersion.Fifa19, ProfileVersion.Fifa20, ProfileVersion.Fifa21, ProfileVersion.Fifa22))
                     return 0x40000;
                 return 0x10000;
             }
@@ -1197,6 +1208,35 @@ namespace FrostySdk
             }
 
             return (uint)((int)((part1 & 0xFFFF0000) + (part1 << 16)) | ((ushort)part2 + (part2 >> 16)));
+        }
+        
+        /// <summary>
+        /// Loads all resolved hashes that are found within the specified file of <paramref name="path"/>.
+        /// </summary>
+        /// <param name="path">The file to be read from for hashes.</param>
+        public static void LoadStringList(string path = "strings.txt", ILogger logger = null)
+        {
+            if (!File.Exists(path))
+            {
+                return;
+            }
+
+            strings.Clear();
+
+            using (NativeReader reader = new NativeReader(new FileStream(path, FileMode.Open, FileAccess.Read)))
+            {
+                while (reader.Position < reader.Length)
+                {
+                    string currentString = reader.ReadLine();
+                    int hash = Fnv1.HashString(currentString);
+                    if (!strings.ContainsKey(hash))
+                    {
+                        strings.Add(hash, currentString);
+                    }
+
+                    logger?.Log("progress:" + (double)reader.Position / (double)reader.Length * 100.0);
+                }
+            }
         }
     }
 }

@@ -9,6 +9,7 @@ using System.Windows.Media;
 using Frosty.Core.Windows;
 using Frosty.Core.Controls;
 using FrostySdk.Interfaces;
+using FrostySdk.Managers.Entries;
 using MeshSetPlugin.Resources;
 using MeshSetPlugin.Editors;
 
@@ -113,7 +114,7 @@ namespace MeshSetPlugin
             settings.Version = (MeshExportVersion)Enum.Parse(typeof(MeshExportVersion), Version);
             settings.Scale = (MeshExportScale)Enum.Parse(typeof(MeshExportScale), Scale);
             settings.FlattenHierarchy = flattenHierarchy;
-
+            settings.ExportSingleLod = exportSingleLod;
             settings.ExportAdditionalMeshes = exportAdditionalMeshes;
 
             if (settings is SkinnedMeshExportSettings exportSettings)
