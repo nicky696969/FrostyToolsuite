@@ -96,6 +96,7 @@ namespace AtlasTexturePlugin
             m_borderHeight = other.m_borderHeight;
             m_chunkId = other.m_chunkId;
             m_data = other.m_data;
+            resMeta = other.resMeta;
         }
 
         public void SetData(int w, int h, Guid newChunkId, AssetManager am)

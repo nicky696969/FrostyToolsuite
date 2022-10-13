@@ -91,8 +91,8 @@ namespace DuplicationPlugin
             newRoot.Resource = newResEntry.ResRid;
             newEntry.LinkAsset(resEntry);
 
-            App.AssetManager.ModifyEbx(newEntry.Name, newAsset);
             App.AssetManager.ModifyRes(newResEntry.Name, atlasTexture);
+            App.AssetManager.ModifyEbx(newEntry.Name, newAsset);
 
             return newEntry;
         }
