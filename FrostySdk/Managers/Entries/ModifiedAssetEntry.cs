@@ -24,6 +24,8 @@ namespace FrostySdk.Managers.Entries
         public bool IsTransientModified = false;
         public int H32;
 
+        public bool IsDirty;
+
         public List<Guid> DependentAssets = new List<Guid>();
         public string UserData = "";
     }
