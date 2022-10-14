@@ -157,8 +157,8 @@ namespace AtlasTexturePlugin
                     // update the res meta
                     fixed (byte* ptr = &resMeta[0])
                     {
-                        *(int*)(ptr + 4) = m_version;
-                        *(uint*)(ptr + 8) = m_nameHash;
+                        *(int*)(ptr + 0) = m_version;
+                        *(uint*)(ptr + 4) = m_nameHash;
                     }
                 }
 
