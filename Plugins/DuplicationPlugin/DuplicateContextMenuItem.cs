@@ -89,7 +89,7 @@ namespace DuplicationPlugin
 
             // Update the ebx
             newRoot.Resource = newResEntry.ResRid;
-            newEntry.LinkAsset(resEntry);
+            newEntry.LinkAsset(newResEntry);
 
             App.AssetManager.ModifyRes(newResEntry.Name, atlasTexture);
             App.AssetManager.ModifyEbx(newEntry.Name, newAsset);
@@ -193,6 +193,56 @@ namespace DuplicationPlugin
             }
 
             App.AssetManager.ModifyRes(newResEntry.Name, newMeshSet);
+            App.AssetManager.ModifyEbx(newEntry.Name, newAsset);
+
+            return newEntry;
+        }
+    }
+
+    public class ClothWrappingExtension : DuplicateAssetExtension
+    {
+        public override string AssetType => "ClothWrappingAsset";
+
+        public override EbxAssetEntry DuplicateAsset(EbxAssetEntry entry, string newName, bool createNew, Type newType)
+        {
+            // Duplicate the ebx
+            EbxAssetEntry newEntry = base.DuplicateAsset(entry, newName, createNew, newType);
+            EbxAsset newAsset = App.AssetManager.GetEbx(newEntry);
+            dynamic newRoot = newAsset.RootObject;
+
+            // Duplicate the res
+            ResAssetEntry resEntry = App.AssetManager.GetResEntry(newRoot.ClothWrappingAssetResource);
+            ResAssetEntry newResEntry = DuplicateRes(resEntry, newEntry.Name, ResourceType.EAClothEntityData);
+
+            // Update the ebx
+            newRoot.ClothWrappingAssetResource = newResEntry.ResRid;
+            newEntry.LinkAsset(newResEntry);
+
+            App.AssetManager.ModifyEbx(newEntry.Name, newAsset);
+
+            return newEntry;
+        }
+    }
+
+    public class ClothExtension : DuplicateAssetExtension
+    {
+        public override string AssetType => "ClothAsset";
+
+        public override EbxAssetEntry DuplicateAsset(EbxAssetEntry entry, string newName, bool createNew, Type newType)
+        {
+            // Duplicate the ebx
+            EbxAssetEntry newEntry = base.DuplicateAsset(entry, newName, createNew, newType);
+            EbxAsset newAsset = App.AssetManager.GetEbx(newEntry);
+            dynamic newRoot = newAsset.RootObject;
+
+            // Duplicate the res
+            ResAssetEntry resEntry = App.AssetManager.GetResEntry(newRoot.ClothAssetResource);
+            ResAssetEntry newResEntry = DuplicateRes(resEntry, newEntry.Name, ResourceType.EAClothAssetData);
+
+            // Update the ebx
+            newRoot.ClothAssetResource = newResEntry.ResRid;
+            newEntry.LinkAsset(newResEntry);
+
             App.AssetManager.ModifyEbx(newEntry.Name, newAsset);
 
             return newEntry;
@@ -315,7 +365,7 @@ namespace DuplicationPlugin
 
             // Update the ebx
             newRoot.Resource = newResEntry.ResRid;
-            newEntry.LinkAsset(resEntry);
+            newEntry.LinkAsset(newResEntry);
 
             App.AssetManager.ModifyEbx(newEntry.Name, newAsset);
 
