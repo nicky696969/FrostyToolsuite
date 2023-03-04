@@ -3,16 +3,15 @@
     <Configurations>Developer - Debug;Release - Alpha;Release - Beta;Release - Final</Configurations>
     <Platforms>x64</Platforms>
     <TargetFrameworks>net48</TargetFrameworks>
-    <AssemblyTitle>AtlasTexturePlugin</AssemblyTitle>
-    <Product>AtlasTexturePlugin</Product>
+    <AssemblyTitle>BlankPlugin</AssemblyTitle>
+    <Product>BlankPlugin</Product>
     <Copyright>Copyright ©  2020</Copyright>
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <UseWPF>true</UseWPF>
     <OutputType>Library</OutputType>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
-  
+
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Developer - Debug|x64' ">
     <DebugSymbols>true</DebugSymbols>
     <OutputPath>bin\Developer\Debug\</OutputPath>
@@ -36,46 +35,22 @@
     <DefineConstants>TRACE</DefineConstants>
     <Optimize>true</Optimize>
   </PropertyGroup>
-  
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="xcopy /Y $(TargetPath) $(SolutionDir)$(OutDir)Plugins\" />
-  </Target>
-  
+
   <ItemGroup>
-    <Reference Include="SharpDX">
-      <HintPath>..\..\FrostyEditor\ThirdParty\SharpDX.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="SharpDX.D3DCompiler">
-      <HintPath>..\..\FrostyEditor\ThirdParty\SharpDX.D3DCompiler.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="SharpDX.Direct3D11">
-      <HintPath>..\..\FrostyEditor\ThirdParty\SharpDX.Direct3D11.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="SharpDX.DXGI">
-      <HintPath>..\..\FrostyEditor\ThirdParty\SharpDX.DXGI.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="SharpDX.Mathematics">
-      <HintPath>..\..\FrostyEditor\ThirdParty\SharpDX.Mathematics.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
+    <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
+    <Reference Include="System.Xaml" />
+    <Reference Include="WindowsBase" />
   </ItemGroup>
-  
+
   <ItemGroup>
-    <ProjectReference Include="..\..\FrostyControls\FrostyControls.csproj">
-      <Private>false</Private>
-    </ProjectReference>
-    <ProjectReference Include="..\..\FrostyHash\FrostyHash.vcxproj">
-      <Private>false</Private>
-    </ProjectReference>
     <ProjectReference Include="..\..\FrostyPlugin\FrostyCore.csproj">
       <Private>false</Private>
     </ProjectReference>
-    <ProjectReference Include="..\..\FrostySdk\FrostySdk.csproj">
-      <Private>false</Private>
-    </ProjectReference>
   </ItemGroup>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="xcopy /Y $(TargetPath) $(SolutionDir)$(OutDir)Plugins\" />
+  </Target>
+
 </Project>

@@ -293,7 +293,7 @@ namespace Frosty.Core.Controls.Editors
             openButton.IsEnabled = !(ptrRef.Type == PointerRefType.Internal || ptrRef.Type == PointerRefType.Null);
             createButton.IsEnabled = canCreate;
             textBlock.Text = "Assign from " + ((isInternal) ? "self" : App.AssetManager.GetEbxEntry(assignFileGuid).Name);
-            separator.Visibility = (assignObjs.Count != 0 && isInternal) ? Visibility.Visible : Visibility.Collapsed;
+            separator.Visibility = (assignObjs.Count != 0) ? Visibility.Visible : Visibility.Collapsed;
             tbborder.Visibility = (assignObjs.Count != 0) ? Visibility.Visible : Visibility.Collapsed;
             filter.Visibility = (assignObjs.Count != 0) ? Visibility.Visible : Visibility.Collapsed;
             clearButton.Visibility = (isInternal) ? Visibility.Visible : Visibility.Collapsed;

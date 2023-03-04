@@ -83,6 +83,7 @@ namespace RootInstanceEntriesPlugin
                     m_ebxRootInstanceGuidList.Add(rootInstanceGuid, fileGuid);
                 }
             }
+            IsLoaded = true;
 
             return true;
         }
